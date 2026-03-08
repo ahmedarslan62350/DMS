@@ -1,0 +1,50 @@
+import { Router } from "express";
+import {
+  createUser,
+  getUsers,
+  getUserById,
+  updateUser,
+  deleteUser,
+} from "../controllers/adminUsser.controller";
+
+import { authenticate } from "../middlewares/auth.middleware";
+import { authorize } from "../middlewares/havePermission.middlerware";
+
+const router = Router();
+
+router.post(
+  "/",
+  authenticate,
+  authorize("user.create"),
+  createUser
+);
+
+router.get(
+  "/",
+  authenticate,
+  authorize("user.read"),
+  getUsers
+);
+
+router.get(
+  "/:id",
+  authenticate,
+  authorize("user.read"),
+  getUserById
+);
+
+router.put(
+  "/:id",
+  authenticate,
+  authorize("user.update"),
+  updateUser
+);
+
+router.delete(
+  "/:id",
+  authenticate,
+  authorize("user.delete"),
+  deleteUser
+);
+
+export default router;

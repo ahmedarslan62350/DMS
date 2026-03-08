@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { createRole, getRoles, getRoleById, updateRole, deleteRole, } from "../controllers/adminRole.controller";
+import { authenticate } from "../middlewares/auth.middleware";
+import { authorize } from "../middlewares/havePermission.middlerware";
+const router = Router();
+router.post("/", authenticate, authorize("role.create"), createRole);
+router.get("/", authenticate, authorize("role.read"), getRoles);
+router.get("/:id", authenticate, authorize("role.read"), getRoleById);
+router.put("/:id", authenticate, authorize("role.update"), updateRole);
+router.delete("/:id", authenticate, authorize("role.delete"), deleteRole);
+export default router;
