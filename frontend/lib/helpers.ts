@@ -1,4 +1,6 @@
-const TOKEN_KEY = process.env.TOKEN_KEY || "token";
+import { env } from "@/config/env";
+
+const TOKEN_KEY = env.TOKEN_KEY || "token";
 
 export class TokenStorage {
   static set(token: string) {

@@ -4,6 +4,16 @@ import * as React from "react";
 import { Edit2, History, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanies } from "@/hooks/useQueries";
+import { Button } from "./ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 interface CompanyTableProps {
   onEditClick: (company: any) => void;
@@ -14,30 +24,62 @@ export function CompanyTable({
   onEditClick,
   onAddClick,
 }: Readonly<CompanyTableProps>) {
+  const [status, setStatus] = React.useState<"Active" | "Inactive" | "All">(
+    "All",
+  );
+
   const { companies: companiesData } = useCompanies() || { data: [] };
 
-  const companies = (companiesData || []).map((c: any) => ({
-    id: c._id,
-    name: c.companyName,
-    joiningDate: new Date(c.joiningDate).toISOString().split("T")[0],
-    dialerLink: c.dialerLink,
-    servers: c.noOfServers || 0,
-    charges: c.serverCharges,
-    renewalDate: new Date(c.renewalDate).toISOString().split("T")[0],
-    status: c.status.charAt(0).toUpperCase() + c.status.slice(1),
-    comment:c.comment
-  }));
+  const allCompanies = React.useMemo(() => {
+    return (companiesData || []).map((c: any) => ({
+      id: c._id,
+      name: c.companyName,
+      joiningDate: new Date(c.joiningDate).toISOString().split("T")[0],
+      dialerLink: c.dialerLink,
+      servers: c.noOfServers || 0,
+      charges: c.serverCharges,
+      renewalDate: new Date(c.renewalDate).toISOString().split("T")[0],
+      status: c.status.charAt(0).toUpperCase() + c.status.slice(1),
+      comment: c.comment,
+      additionalComment: c?.additionalComment || "None"
+    }));
+  }, [companiesData]);
+
+  const companies = React.useMemo(() => {
+    if (status === "All") return allCompanies;
+    return allCompanies.filter((c: any) => c.status === status);
+  }, [status, allCompanies]);
 
   return (
     <div className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden">
       <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
         <h2 className="text-xl font-bold tracking-tight">Companies Overview</h2>
-        <button
-          onClick={onAddClick}
-          className="text-sm font-medium px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity"
-        >
-          Add Company
-        </button>
+        <div className="flex gap-2">
+          <Select
+            value={status}
+            onValueChange={(value: "Active" | "Inactive" | "All") =>
+              setStatus(value)
+            }
+          >
+            <SelectTrigger className="w-full max-w-48">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Status</SelectLabel>
+                <SelectItem value="All">All</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">In Active</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <Button
+            onClick={onAddClick}
+            className="text-sm font-medium px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity"
+          >
+            Add Company
+          </Button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="min-w-full w-max text-left table-fixed border-collapse">
@@ -50,7 +92,8 @@ export function CompanyTable({
               <th className="px-6 min-w-[150px] py-4">Charges</th>
               <th className="px-6 min-w-[150px] py-4">Renewal</th>
               <th className="px-6 min-w-[150px] py-4">Status</th>
-              <th className="px-6 py-4 w-80">Comment</th>
+              <th className="px-6 py-4 w-80">Renewal Details</th>
+              <th className="px-6 py-4 w-80">Additional Comment</th>
               <th className="px-6 min-w-[150px] py-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -73,7 +116,7 @@ export function CompanyTable({
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors"
                   >
-                    Link <ExternalLink className="w-3 h-3" />
+                    {company.dialerLink} <ExternalLink className="w-3 h-3" />
                   </a>
                 </td>
                 <td className="px-6 py-4">
@@ -104,6 +147,15 @@ export function CompanyTable({
                     )}
                   >
                     {company.comment}
+                  </span>
+                </td>
+                <td className="px-6 py-4 w-80">
+                  <span
+                    className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                    )}
+                  >
+                    {company?.additionalComment}
                   </span>
                 </td>
                 <td className="px-6 py-4">

@@ -10,6 +10,7 @@ export interface CompanyDocument extends Document {
   renewalDate: Date;
   status: "active" | "inactive";
   comment?: string;
+  additionalComment?: string;
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
   createdAt: Date;
@@ -58,6 +59,10 @@ const CompanySchema = new Schema<CompanyDocument>(
     },
 
     comment: {
+      type: String,
+      default: "",
+    },
+    additionalComment: {
       type: String,
       default: "",
     },

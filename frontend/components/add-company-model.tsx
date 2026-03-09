@@ -23,6 +23,7 @@ interface Company {
   renewalDate: string;
   status: string;
   comment: string;
+  additionalComment: string;
 }
 
 interface AddCompanyModalProps {
@@ -45,6 +46,7 @@ export function AddCompanyModal({
     renewalDate: "",
     status: "Active",
     comment: "",
+    additionalComment: "",
   });
 
   const handleChange = (field: keyof Company, value: any) => {
@@ -64,6 +66,7 @@ export function AddCompanyModal({
       renewalDate: "",
       status: "Active",
       comment: "",
+      additionalComment: "",
     });
   };
 
@@ -210,12 +213,24 @@ export function AddCompanyModal({
 
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                  <File className="w-3 h-3" /> Comment
+                  <File className="w-3 h-3" /> Renewal Details
                 </label>
                 <input
                   type="text"
                   value={formData.comment}
                   onChange={(e) => handleChange("comment", e.target.value)}
+                  className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
+                  <File className="w-3 h-3" /> Additional Comment
+                </label>
+                <input
+                  type="text"
+                  value={formData.additionalComment}
+                  onChange={(e) => handleChange("additionalComment", e.target.value)}
                   className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                 />
               </div>

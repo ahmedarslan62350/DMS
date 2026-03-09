@@ -10,7 +10,8 @@ export const createCompany = async (req: any, res: Response) => {
       noOfServers,
       serverCharges,
       renewalDate,
-      comment
+      comment,
+      additionalComment
     } = req.body;
 
     const company = new Company({
@@ -21,6 +22,7 @@ export const createCompany = async (req: any, res: Response) => {
       serverCharges,
       renewalDate,
       comment,
+      additionalComment,
       status: "active",
       createdBy: req.user.userId,
     });

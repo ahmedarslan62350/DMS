@@ -11,9 +11,12 @@ export const ipWhitelist = (
   res: Response,
   next: NextFunction,
 ) => {
+  console.log(allowedIPs);
+  
   const clientIP = req.ip;
-
-  if (!allowedIPs.has(clientIP!)) {
+  console.log(clientIP);
+  
+  if (!allowedIPs.has(clientIP || '')) {
     return res.status(403).json({
       message: "Access denied from this IP",
     });

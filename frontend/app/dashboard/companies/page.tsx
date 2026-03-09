@@ -29,6 +29,7 @@ export default function CompaniesPage() {
         renewalDate: updatedCompany.renewalDate,
         comment: updatedCompany.comment,
         status: updatedCompany.status.toLowerCase(),
+        additionalComment: updatedCompany.additionalComment,
       },
     });
     setEditingCompany(null);
@@ -44,6 +45,7 @@ export default function CompaniesPage() {
       joiningDate: newCompany.joiningDate,
       comment: newCompany.comment,
       status: newCompany.status.toLowerCase(),
+      additionalComment: newCompany.additionalComment,
     });
     setIsAddModalOpen(false);
   };
