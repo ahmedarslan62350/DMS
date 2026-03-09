@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch ./main.ts",
-    "build": "tsc",
+    "build": "tsc & npx fix-esm-import-path dist",
     "start":"node ./dist/main.js"
   },
   "keywords": [],
