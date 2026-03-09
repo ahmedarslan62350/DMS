@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Edit2, History, ExternalLink } from "lucide-react";
+import { Edit2, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanies } from "@/hooks/useQueries";
 import { Button } from "./ui/button";
@@ -38,10 +38,11 @@ export function CompanyTable({
       dialerLink: c.dialerLink,
       servers: c.noOfServers || 0,
       charges: c.serverCharges,
+      password: c.password,
       renewalDate: new Date(c.renewalDate).toISOString().split("T")[0],
       status: c.status.charAt(0).toUpperCase() + c.status.slice(1),
       comment: c.comment,
-      additionalComment: c?.additionalComment || "None"
+      additionalComment: c?.additionalComment || "None",
     }));
   }, [companiesData]);
 
@@ -69,7 +70,7 @@ export function CompanyTable({
                 <SelectLabel>Status</SelectLabel>
                 <SelectItem value="All">All</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">In Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -88,6 +89,7 @@ export function CompanyTable({
               <th className="px-6 min-w-[150px] py-4">Company Name</th>
               <th className="px-6 min-w-[150px] py-4">Joining Date</th>
               <th className="px-6 min-w-[150px] py-4">Dialer Link</th>
+              <th className="px-6 min-w-[150px] py-4">Password</th>
               <th className="px-6 min-w-[150px] py-4">Servers</th>
               <th className="px-6 min-w-[150px] py-4">Charges</th>
               <th className="px-6 min-w-[150px] py-4">Renewal</th>
@@ -118,6 +120,9 @@ export function CompanyTable({
                   >
                     {company.dialerLink} <ExternalLink className="w-3 h-3" />
                   </a>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="text-sm font-mono">{company.password}</span>
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-sm font-mono">{company.servers}</span>

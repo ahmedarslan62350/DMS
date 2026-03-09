@@ -3,7 +3,6 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, User, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface Comment {
   id: number;
@@ -24,7 +23,7 @@ const mockComments: Comment[] = [
   { id: 3, user: 'Mike R.', text: 'Added 1 server. Updated charges to $1,200.', date: '2024-03-04 04:15 PM' },
 ];
 
-export function CommentsModal({ isOpen, onClose, companyName }: CommentsModalProps) {
+export function CommentsModal({ isOpen, onClose, companyName }: Readonly<CommentsModalProps>) {
   const [newComment, setNewComment] = React.useState('');
 
   return (

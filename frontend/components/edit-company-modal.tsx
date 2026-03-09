@@ -12,20 +12,21 @@ import {
   Calendar,
   Activity,
   File,
+  Lock,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface Company {
   id: number;
   name: string;
   joiningDate: string;
   dialerLink: string;
+  password: string;
   servers: number;
   charges: number;
   renewalDate: string;
   status: string;
   comment: string;
-  additionalComment:string
+  additionalComment: string;
 }
 
 interface EditCompanyModalProps {
@@ -40,7 +41,7 @@ export function EditCompanyModal({
   onClose,
   company,
   onSave,
-}: EditCompanyModalProps) {
+}: Readonly<EditCompanyModalProps>) {
   const [formData, setFormData] = React.useState<Company | null>(null);
 
   React.useEffect(() => {
@@ -80,7 +81,7 @@ export function EditCompanyModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl z-[60] overflow-hidden"
+            className="fixed scale-[0.6] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl z-[60] overflow-hidden"
           >
             <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
               <div>
@@ -127,13 +128,27 @@ export function EditCompanyModal({
 
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
+                    <Lock className="w-3 h-3" /> Password
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="123456789"
+                    value={formData.password}
+                    onChange={(e) => handleChange("password", e.target.value)}
+                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
                     <Server className="w-3 h-3" /> Total Servers
                   </label>
                   <input
                     type="number"
                     value={formData.servers}
                     onChange={(e) =>
-                      handleChange("servers", parseInt(e.target.value))
+                      handleChange("servers", Number.parseInt(e.target.value))
                     }
                     className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                   />

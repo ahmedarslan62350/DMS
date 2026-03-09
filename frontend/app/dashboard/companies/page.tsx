@@ -28,6 +28,7 @@ export default function CompaniesPage() {
         serverCharges: updatedCompany.charges,
         renewalDate: updatedCompany.renewalDate,
         comment: updatedCompany.comment,
+        password: updatedCompany.password,
         status: updatedCompany.status.toLowerCase(),
         additionalComment: updatedCompany.additionalComment,
       },
@@ -39,6 +40,7 @@ export default function CompaniesPage() {
     newCompanyMutation.mutate({
       companyName: newCompany.name,
       dialerLink: newCompany.dialerLink,
+      password: newCompany.password,
       noOfServers: newCompany.servers,
       serverCharges: newCompany.charges,
       renewalDate: newCompany.renewalDate,

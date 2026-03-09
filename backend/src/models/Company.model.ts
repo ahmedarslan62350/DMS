@@ -5,6 +5,7 @@ export interface CompanyDocument extends Document {
   companyName: string;
   joiningDate: Date;
   dialerLink?: string;
+  password?: string;
   noOfServers: number;
   serverCharges: number;
   renewalDate: Date;
@@ -33,6 +34,9 @@ const CompanySchema = new Schema<CompanyDocument>(
     dialerLink: {
       type: String,
       trim: true,
+    },
+    password: {
+      type: String,
     },
 
     noOfServers: {
