@@ -42,7 +42,7 @@ export const getCompanies = async (req: Request, res: Response) => {
   try {
     const companies = await Company.find()
       .populate("createdBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ renewalDate: 1 });
 
     res.json(companies);
   } catch (error) {

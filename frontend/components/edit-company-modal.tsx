@@ -24,6 +24,7 @@ interface Company {
   servers: number;
   charges: number;
   renewalDate: string;
+  inactiveDate?: string;
   status: string;
   comment: string;
   additionalComment: string;
@@ -36,6 +37,8 @@ interface EditCompanyModalProps {
   onSave: (updatedCompany: Company) => void;
 }
 
+type status = "active" | "inactive";
+
 export function EditCompanyModal({
   isOpen,
   onClose,
@@ -43,10 +46,11 @@ export function EditCompanyModal({
   onSave,
 }: Readonly<EditCompanyModalProps>) {
   const [formData, setFormData] = React.useState<Company | null>(null);
+  const [status, setStatus] = React.useState<status>(
+    (formData?.status as status) || "active",
+  );
 
   React.useEffect(() => {
-    console.log(company);
-
     if (company) {
       setFormData({ ...company });
     }
@@ -55,6 +59,10 @@ export function EditCompanyModal({
   if (!formData) return null;
 
   const handleChange = (field: keyof Company, value: any) => {
+    if (field === "status") {
+      setStatus(value.toLowerCase());
+    }
+
     setFormData((prev) => (prev ? { ...prev, [field]: value } : null));
   };
 
@@ -81,7 +89,7 @@ export function EditCompanyModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed scale-[0.6] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl z-[60] overflow-hidden"
+            className="fixed scale-[0.7] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl z-[60] overflow-hidden"
           >
             <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
               <div>
@@ -195,32 +203,48 @@ export function EditCompanyModal({
                     <option value="Inactive">Inactive</option>
                   </select>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                  <File className="w-3 h-3" /> Comment
-                </label>
-                <input
-                  type="text"
-                  value={formData.comment}
-                  onChange={(e) => handleChange("comment", e.target.value)}
-                  className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                />
-              </div>
+                {status === "inactive" && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
+                      <Calendar className="w-3 h-3" /> Inactive Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.inactiveDate}
+                      onChange={(e) =>
+                        handleChange("inactiveDate", e.target.value)
+                      }
+                      className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                    />
+                  </div>
+                )}
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                  <File className="w-3 h-3" /> Additional Comment
-                </label>
-                <input
-                  type="text"
-                  value={formData.additionalComment}
-                  onChange={(e) =>
-                    handleChange("additionalComment", e.target.value)
-                  }
-                  className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                />
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
+                    <File className="w-3 h-3" /> Comment
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.comment}
+                    onChange={(e) => handleChange("comment", e.target.value)}
+                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
+                    <File className="w-3 h-3" /> Additional Comment
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.additionalComment}
+                    onChange={(e) =>
+                      handleChange("additionalComment", e.target.value)
+                    }
+                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                  />
+                </div>
               </div>
 
               <div className="pt-4 flex items-center justify-end gap-3">

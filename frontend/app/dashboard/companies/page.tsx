@@ -30,6 +30,7 @@ export default function CompaniesPage() {
         comment: updatedCompany.comment,
         password: updatedCompany.password,
         status: updatedCompany.status.toLowerCase(),
+        inactiveDate: updatedCompany.inactiveDate ?? "",
         additionalComment: updatedCompany.additionalComment,
       },
     });

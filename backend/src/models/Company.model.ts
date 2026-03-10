@@ -12,6 +12,7 @@ export interface CompanyDocument extends Document {
   status: "active" | "inactive";
   comment?: string;
   additionalComment?: string;
+  inactiveDate?: string;
   createdBy: Types.ObjectId;
   updatedBy?: Types.ObjectId;
   createdAt: Date;
@@ -30,7 +31,9 @@ const CompanySchema = new Schema<CompanyDocument>(
       type: Date,
       required: true,
     },
-
+    inactiveDate: {
+      type: Date,
+    },
     dialerLink: {
       type: String,
       trim: true,
@@ -87,6 +90,7 @@ const CompanySchema = new Schema<CompanyDocument>(
   },
 );
 
+CompanySchema.index({ renewalDate: 1 });
 CompanySchema.plugin(auditPlugin, {
   entityType: "Company",
 });

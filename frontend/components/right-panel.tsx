@@ -41,7 +41,7 @@ export function RightPanel() {
         };
     })
     .filter(Boolean)
-    .slice(0, 3)
+    .slice(0, 10)
     .sort((a: any, b: any) => b.rawDate - a.rawDate);
 
   const renewals = companies
@@ -62,7 +62,7 @@ export function RightPanel() {
     })
     .filter((r: any) => r.days >= 0)
     .sort((a: any, b: any) => a.days - b.days)
-    .slice(0, 3);
+    .slice(0, 10);
 
   return (
     <aside className="w-80 shrink-0 hidden xl:flex flex-col gap-6 sticky top-28 h-[calc(150vh-140px)]">
@@ -102,7 +102,7 @@ export function RightPanel() {
       </section>
 
       {/* Recent Changes */}
-      <section className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl pt-6 px-6 pb-2 shadow-sm flex-1">
+      <section className="max-h-60 overflow-y-auto bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl pt-6 px-6 pb-2 shadow-sm flex-1">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <History className="w-4 h-4 text-black/40 dark:text-white/40" />

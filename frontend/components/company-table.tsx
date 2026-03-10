@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Input } from "./ui/input";
 
 interface CompanyTableProps {
   onEditClick: (company: any) => void;
@@ -25,8 +26,10 @@ export function CompanyTable({
   onAddClick,
 }: Readonly<CompanyTableProps>) {
   const [status, setStatus] = React.useState<"Active" | "Inactive" | "All">(
-    "All",
+    "Active",
   );
+  const [search, setSearch] = React.useState("");
+  const today = new Date();
 
   const { companies: companiesData } = useCompanies() || { data: [] };
 
@@ -46,23 +49,59 @@ export function CompanyTable({
     }));
   }, [companiesData]);
 
-  const companies = React.useMemo(() => {
+  const filteredCompanies = React.useMemo(() => {
     if (status === "All") return allCompanies;
-    return allCompanies.filter((c: any) => c.status === status);
-  }, [status, allCompanies]);
+    return allCompanies.filter(
+      (c: any) =>
+        c.status === status &&
+        c.name.toLowerCase().includes(search.toLowerCase()),
+    );
+  }, [status, allCompanies, search]);
+
+  const companies = React.useMemo(() => {
+    const companies = filteredCompanies
+      .map((c: any) => {
+        const renewalDate = new Date(c.renewalDate);
+
+        const diffTime = renewalDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        
+        let status = "Upcoming";
+        if (diffDays <= 3 && diffDays > 0) status = "Urgent";
+        else if (diffDays <= 5 && diffDays > 0) status = "Pending";
+        else if (diffDays <= 0) status = "Passed";
+
+        console.log(diffDays, status);
+        c.renewalStatus = status;
+        c.days = diffDays;
+
+        return c;
+      })
+      .sort((a: any, b: any) => a.days - b.days);
+
+    return companies;
+  }, [filteredCompanies, today]);
 
   return (
     <div className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden">
       <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
         <h2 className="text-xl font-bold tracking-tight">Companies Overview</h2>
+
         <div className="flex gap-2">
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-1/2"
+            placeholder="Search..."
+          ></Input>
           <Select
             value={status}
             onValueChange={(value: "Active" | "Inactive" | "All") =>
               setStatus(value)
             }
           >
-            <SelectTrigger className="w-full max-w-48">
+            <SelectTrigger className="w-1/4 max-w-48">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -87,15 +126,15 @@ export function CompanyTable({
           <thead>
             <tr className="bg-black/[0.02] dark:bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40">
               <th className="px-6 min-w-[150px] py-4">Company Name</th>
-              <th className="px-6 min-w-[150px] py-4">Joining Date</th>
+              <th className="px-6 min-w-[150px] py-4">Renewal Date</th>
               <th className="px-6 min-w-[150px] py-4">Dialer Link</th>
               <th className="px-6 min-w-[150px] py-4">Password</th>
               <th className="px-6 min-w-[150px] py-4">Servers</th>
               <th className="px-6 min-w-[150px] py-4">Charges</th>
-              <th className="px-6 min-w-[150px] py-4">Renewal</th>
               <th className="px-6 min-w-[150px] py-4">Status</th>
               <th className="px-6 py-4 w-80">Renewal Details</th>
               <th className="px-6 py-4 w-80">Additional Comment</th>
+              <th className="px-6 py-4">Joining Date</th>
               <th className="px-6 min-w-[150px] py-4 text-right">Actions</th>
             </tr>
           </thead>
@@ -103,13 +142,13 @@ export function CompanyTable({
             {companies.map((company: any) => (
               <tr
                 key={company.id}
-                className="group hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors"
+                className={`group hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors ${company.renewalStatus === "Passed" && "bg-red-300/50 hover:bg-red-400/50"} ${company.renewalStatus === "Urgent" && "bg-blue-400/30 hover:bg-blue-500/50"} ${company.renewalStatus === "Pending" && "bg-green-400/30 hover:bg-green-500/50"}`}
               >
                 <td className="px-6 py-4">
                   <span className="font-bold text-sm">{company.name}</span>
                 </td>
                 <td className="px-6 py-4 text-sm text-black/60 dark:text-white/60">
-                  {company.joiningDate}
+                  {company.renewalDate}
                 </td>
                 <td className="px-6 py-4">
                   <a
@@ -129,9 +168,6 @@ export function CompanyTable({
                 </td>
                 <td className="px-6 py-4">
                   <span className="text-sm font-bold">${company.charges}</span>
-                </td>
-                <td className="px-6 py-4 text-sm text-black/60 dark:text-white/60">
-                  {company.renewalDate}
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -162,6 +198,9 @@ export function CompanyTable({
                   >
                     {company?.additionalComment}
                   </span>
+                </td>
+                <td className="px-6 py-4 text-sm text-black/60 dark:text-white/60">
+                  {company.joiningDate}
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-2">

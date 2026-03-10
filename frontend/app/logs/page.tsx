@@ -6,6 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { motion, useInView } from "motion/react";
 import { Clock, User, ArrowRight, Filter, Calendar } from "lucide-react";
 import { useLogs } from "@/hooks/useQueries";
+import { isImpField } from "@/lib/helpers";
 
 export default function LogsPage() {
   const maxPageRows = 5;
@@ -37,52 +38,60 @@ export default function LogsPage() {
     console.log(page);
   }, [isInView, isLoading, rawLogs.length]);
 
-  const logs = allLogs.map((log: any) => {
-    const isAllFields = log.field === "all_fields";
-    const fieldMap: Record<string, string> = {
-      all_fields: log.action === "create" ? "NEW RECORD" : "DELETED RECORD",
-      serverCharges: "Server Charges",
-      status: "Status",
-      noOfServers: "Servers",
-      renewalDate: "Renewal Date",
-      dialerLink: "Dialer Link",
-    };
-
-    const formatValue = (val: any, field: string) => {
-      if (!val || val === "null") return "None";
-      if (isAllFields) {
-        try {
-          const parsed = JSON.parse(val);
-          return `Record: ${parsed.name || parsed.companyName || log.entityType}`;
-        } catch (e) {
-          console.log(e);
-          return val;
-        }
+  const logs = allLogs
+    .map((log: any) => {
+      if (!isImpField(log.field)) {
+        return null;
       }
-      if (field === "serverCharges") return `$${Number(val).toLocaleString()}`;
-      if (field === "status") return val.charAt(0).toUpperCase() + val.slice(1);
-      return String(val);
-    };
 
-    return {
-      id: log._id,
-      action: log.action,
-      entityType: log.entityType,
-      entityId: log.entityId?._id || "N/A",
-      field: fieldMap[log.field] || log.field,
-      oldValue: formatValue(log.oldValue, log.field),
-      newValue: formatValue(log.newValue, log.field),
-      user: log.changedBy?.name || "System",
-      userEmail: log.changedBy?.email || "",
-      date: new Date(log.createdAt).toLocaleDateString(),
-      time: new Date(log.createdAt).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      targetName:
-        log.entityId?.name || log.entityId?.companyName || log.entityType,
-    };
-  });
+      const isAllFields = log.field === "all_fields";
+      const fieldMap: Record<string, string> = {
+        all_fields: log.action === "create" ? "NEW RECORD" : "DELETED RECORD",
+        serverCharges: "Server Charges",
+        status: "Status",
+        noOfServers: "Servers",
+        renewalDate: "Renewal Date",
+        dialerLink: "Dialer Link",
+      };
+
+      const formatValue = (val: any, field: string) => {
+        if (!val || val === "null") return "None";
+        if (isAllFields) {
+          try {
+            const parsed = JSON.parse(val);
+            return `Record: ${parsed.name || parsed.companyName || log.entityType}`;
+          } catch (e) {
+            console.log(e);
+            return val;
+          }
+        }
+        if (field === "serverCharges")
+          return `$${Number(val).toLocaleString()}`;
+        if (field === "status")
+          return val.charAt(0).toUpperCase() + val.slice(1);
+        return String(val);
+      };
+
+      return {
+        id: log._id,
+        action: log.action,
+        entityType: log.entityType,
+        entityId: log.entityId?._id || "N/A",
+        field: fieldMap[log.field] || log.field,
+        oldValue: formatValue(log.oldValue, log.field),
+        newValue: formatValue(log.newValue, log.field),
+        user: log.changedBy?.name || "System",
+        userEmail: log.changedBy?.email || "",
+        date: new Date(log.createdAt).toLocaleDateString(),
+        time: new Date(log.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        targetName:
+          log.entityId?.name || log.entityId?.companyName || log.entityType,
+      };
+    })
+    .filter(Boolean);
 
   return (
     <div className="flex min-h-screen">
