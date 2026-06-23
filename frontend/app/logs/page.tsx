@@ -235,7 +235,7 @@ export default function LogsPage() {
                       </div>
 
                       <span className="text-[10px] font-mono text-black/40 dark:text-white/40 ml-1">
-                        ID: {log.entityId}
+                        ID: {log.entityId ? log.entityId : selectedCompanyId}
                       </span>
                     </div>
 
