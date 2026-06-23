@@ -175,7 +175,7 @@ export default function LogsPage() {
                         className="w-full text-left px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition"
                       >
                         {company.companyName || company.name}
-                        <span className="text-[10px] font-mono text-black/40 dark:text-white/40 ml-1">
+                        <span className="text-[10px] font-mono text-black/40 dark:text-white/40 ml-3">
                           ID: {company._id}
                         </span>
                       </button>
