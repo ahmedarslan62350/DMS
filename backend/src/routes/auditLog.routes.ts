@@ -25,7 +25,7 @@ router.get(
 );
 
 router.get(
-  "/:entityType/:entityId",
+  "/:entityType/:entityId/:idx",
   authenticate,
   authorize("audit.read"),
   getEntityAuditLogs

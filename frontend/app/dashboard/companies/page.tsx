@@ -19,6 +19,8 @@ export default function CompaniesPage() {
   const newCompanyMutation = useMutation(Mutations.createCompany(queryClient));
 
   const handleSave = (updatedCompany: any) => {
+    console.log(updatedCompany);
+    
     companyMutation.mutate({
       id: updatedCompany.id,
       data: {

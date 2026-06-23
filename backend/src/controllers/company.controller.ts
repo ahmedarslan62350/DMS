@@ -12,7 +12,7 @@ export const createCompany = async (req: any, res: Response) => {
       serverCharges,
       renewalDate,
       comment,
-      additionalComment
+      additionalComment,
     } = req.body;
 
     const company = new Company({
@@ -69,10 +69,19 @@ export const getCompanyById = async (req: Request, res: Response) => {
 
 export const updateCompany = async (req: any, res: Response) => {
   try {
+    let data = req.body;
+    if (
+      data?.inactiveDate &&
+      (data.inactiveDate === "None" || !data.inactiveDate)
+    ) {
+      const { inactiveDate, ...dataToUpdate } = req.body;
+      data = dataToUpdate;
+    }
+
     const company = await Company.findOneAndUpdate(
       { _id: req.params.id },
       {
-        $set: req.body,
+        $set: data,
       },
       {
         new: true,
@@ -86,6 +95,8 @@ export const updateCompany = async (req: any, res: Response) => {
 
     res.json(company);
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({ error });
   }
 };

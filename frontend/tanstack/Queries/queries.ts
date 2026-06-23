@@ -68,4 +68,12 @@ export class Queries {
       queryFn: () => AuditApis.getLogs(page, limit),
     };
   }
+
+  static entityAuditLogs(entityType: string, entityId: string, idx = 0) {
+    return {
+      queryKey: ["entityAuditLogs", entityType, entityId, idx],
+      queryFn: () => AuditApis.getEntityLogs(entityType, entityId, idx),
+      enabled: !!entityType && !!entityId,
+    };
+  }
 }

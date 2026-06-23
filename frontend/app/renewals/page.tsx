@@ -14,6 +14,7 @@ export default function RenewalsPage() {
 
   const renewals = companies
     .map((c: any) => {
+      if (c.status === "inactive") return null;
       const renewalDate = new Date(c.renewalDate);
 
       const diffTime = renewalDate.getTime() - today.getTime();
@@ -38,7 +39,6 @@ export default function RenewalsPage() {
       return returnData;
     })
     .filter(Boolean)
-    .filter((r: any) => r.days >= 0)
     .sort((a: any, b: any) => a.days - b.days);
 
   return (

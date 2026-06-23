@@ -9,9 +9,13 @@ export class AuditApis {
     return response;
   }
 
-  static async getEntityLogs(entityType: string, entityId: string) {
+  static async getEntityLogs(
+    entityType: string,
+    entityId: string,
+    idx = 0,
+  ) {
     const { data: response } = await apiClient.get(
-      `/audit/${entityType}/${entityId}`,
+      `/audit/${entityType}/${entityId}/${idx}`,
     );
 
     return response;

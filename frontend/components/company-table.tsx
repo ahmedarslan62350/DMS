@@ -43,6 +43,9 @@ export function CompanyTable({
       charges: c.serverCharges,
       password: c.password,
       renewalDate: new Date(c.renewalDate).toISOString().split("T")[0],
+      inactiveDate: c.inactiveDate
+        ? new Date(c.inactiveDate)?.toISOString()?.split("T")[0]
+        : "None",
       status: c.status.charAt(0).toUpperCase() + c.status.slice(1),
       comment: c.comment,
       additionalComment: c?.additionalComment || "None",
@@ -66,7 +69,6 @@ export function CompanyTable({
         const diffTime = renewalDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        
         let status = "Upcoming";
         if (diffDays <= 3 && diffDays > 0) status = "Urgent";
         else if (diffDays <= 5 && diffDays > 0) status = "Pending";
@@ -115,7 +117,7 @@ export function CompanyTable({
           </Select>
           <Button
             onClick={onAddClick}
-            className="text-sm font-medium px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity"
+            className=" font-medium px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity"
           >
             Add Company
           </Button>
@@ -124,7 +126,7 @@ export function CompanyTable({
       <div className="overflow-x-auto">
         <table className="min-w-full w-max text-left table-fixed border-collapse">
           <thead>
-            <tr className="bg-black/[0.02] dark:bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40">
+            <tr className="bg-black/[0.02] dark:bg-white/[0.02]  font-bold uppercase tracking-widest text-black/40 dark:text-white/40">
               <th className="px-6 min-w-[150px] py-4">Company Name</th>
               <th className="px-6 min-w-[150px] py-4">Renewal Date</th>
               <th className="px-6 min-w-[150px] py-4">Dialer Link</th>
@@ -132,6 +134,7 @@ export function CompanyTable({
               <th className="px-6 min-w-[150px] py-4">Servers</th>
               <th className="px-6 min-w-[150px] py-4">Charges</th>
               <th className="px-6 min-w-[150px] py-4">Status</th>
+              <th className="px-6 min-w-[150px] py-4">Inactive Date</th>
               <th className="px-6 py-4 w-80">Renewal Details</th>
               <th className="px-6 py-4 w-80">Additional Comment</th>
               <th className="px-6 py-4">Joining Date</th>
@@ -145,9 +148,12 @@ export function CompanyTable({
                 className={`group hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors ${company.renewalStatus === "Passed" && "bg-red-300/50 hover:bg-red-400/50"} ${company.renewalStatus === "Urgent" && "bg-blue-400/30 hover:bg-blue-500/50"} ${company.renewalStatus === "Pending" && "bg-green-400/30 hover:bg-green-500/50"}`}
               >
                 <td className="px-6 py-4">
-                  <span className="font-bold text-sm">{company.name}</span>
+                  <p className="font-bold">{company.name}</p>
+                  <p className="text-[10px] font-mono text-black/40 dark:text-white/40">
+                    ID: {company.id}
+                  </p>
                 </td>
-                <td className="px-6 py-4 text-sm text-black/60 dark:text-white/60">
+                <td className="px-6 py-4  text-black/60 dark:text-white/60">
                   {company.renewalDate}
                 </td>
                 <td className="px-6 py-4">
@@ -155,24 +161,24 @@ export function CompanyTable({
                     href={company.dialerLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors"
+                    className="inline-flex items-center gap-1.5  font-medium text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors"
                   >
                     {company.dialerLink} <ExternalLink className="w-3 h-3" />
                   </a>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-mono">{company.password}</span>
+                  <span className=" font-mono">{company.password}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-mono">{company.servers}</span>
+                  <span className=" font-mono">{company.servers}</span>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="text-sm font-bold">${company.charges}</span>
+                  <span className=" font-bold">${company.charges}</span>
                 </td>
                 <td className="px-6 py-4">
                   <span
                     className={cn(
-                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold uppercase tracking-wider",
                       company.status === "Active"
                         ? "bg-emerald-500/10 text-emerald-500"
                         : "bg-red-500/10 text-red-500",
@@ -181,10 +187,19 @@ export function CompanyTable({
                     {company.status}
                   </span>
                 </td>
+                <td className="px-6 py-4">
+                  <span
+                    className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm uppercase tracking-wider",
+                    )}
+                  >
+                    {company.inactiveDate}
+                  </span>
+                </td>
                 <td className="px-6 py-4 w-80">
                   <span
                     className={cn(
-                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm uppercase tracking-wider",
                     )}
                   >
                     {company.comment}
@@ -193,13 +208,13 @@ export function CompanyTable({
                 <td className="px-6 py-4 w-80">
                   <span
                     className={cn(
-                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm uppercase tracking-wider",
                     )}
                   >
                     {company?.additionalComment}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-black/60 dark:text-white/60">
+                <td className="px-6 py-4  text-black/60 dark:text-white/60">
                   {company.joiningDate}
                 </td>
                 <td className="px-6 py-4">

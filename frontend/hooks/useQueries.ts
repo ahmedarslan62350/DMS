@@ -29,6 +29,24 @@ export const useLogs = (page = 1, limit = 10) => {
   };
 };
 
+export const useEntityLogs = (
+  entityType: string,
+  entityId: string,
+  idx = 0,
+) => {
+  const { data, isLoading, isError, refetch } = useQuery(
+    Queries.entityAuditLogs(entityType, entityId, idx),
+  );
+
+  return {
+    logs: data || [],
+    isLoading,
+    isError,
+    refetch,
+    total: data?.total || 0,
+  };
+};
+
 export const useUsers = () => {
   const { data, isLoading, isError, refetch } = useQuery(
     Queries.users(),

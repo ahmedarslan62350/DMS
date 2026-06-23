@@ -48,14 +48,20 @@ export const getAuditLogsByEntity = async (req: Request, res: Response) => {
 
 export const getEntityAuditLogs = async (req: Request, res: Response) => {
   try {
-    const { entityType, entityId } = req.params;
+    const { entityType, entityId, idx } = req.params;
+
+    const page = Math.max(Number(idx) || 0, 0);
+    const limit = 20;
+    const skip = page * limit;
 
     const logs = await AuditLog.find({
       entityType,
       entityId,
     })
       .populate("changedBy", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.json(logs);
   } catch (error) {
