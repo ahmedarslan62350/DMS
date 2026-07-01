@@ -32,11 +32,10 @@ export default function LogsPage() {
     if (!search.trim()) return companies;
 
     const searchLower = search.toLowerCase();
-    return companies.filter((c: any) =>
-      (c.companyName || c.name || "")
-        .toLowerCase()
-        .includes(searchLower) ||
-      (c.dialerLink && c.dialerLink.toLowerCase().includes(searchLower)),
+    return companies.filter(
+      (c: any) =>
+        (c.companyName || c.name || "").toLowerCase().includes(searchLower) ||
+        (c.dialerLink && c.dialerLink.toLowerCase().includes(searchLower)),
     );
   }, [companies, search]);
 
@@ -139,10 +138,13 @@ export default function LogsPage() {
         newValue: formatValue(log.newValue, log.field),
         user: log.changedBy?.name || "System",
         userEmail: log.changedBy?.email || "",
-        date: new Date(log.createdAt).toLocaleDateString(),
-        time: new Date(log.createdAt).toLocaleTimeString([], {
+        date: new Date(log.createdAt).toLocaleDateString("en-US", {
+          timeZone: "UTC",
+        }),
+        time: new Date(log.createdAt).toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
+          timeZone: "UTC",
         }),
         targetName:
           log.entityId?.name || log.entityId?.companyName || "Company",
@@ -244,108 +246,108 @@ export default function LogsPage() {
               />
             </div>
           ) : (
-          <div className="relative space-y-8">
-            <div className="absolute left-4 top-2 bottom-2 w-px bg-black/5 dark:bg-white/10" />
+            <div className="relative space-y-8">
+              <div className="absolute left-4 top-2 bottom-2 w-px bg-black/5 dark:bg-white/10" />
 
-            {logs.map((log: any, index: number) => (
-              <motion.div
-                key={log.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="relative pl-12 group mb-6"
-              >
-                <div
-                  className={`absolute left-2.5 top-2 w-3 h-3 rounded-full border-2 z-10 transition-transform group-hover:scale-125 ${
-                    log.action === "create"
-                      ? "bg-emerald-500 border-emerald-500"
-                      : log.action === "delete"
-                        ? "bg-red-500 border-red-500"
-                        : "bg-white dark:bg-black border-black dark:border-white"
-                  }`}
-                />
+              {logs.map((log: any, index: number) => (
+                <motion.div
+                  key={log.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="relative pl-12 group mb-6"
+                >
+                  <div
+                    className={`absolute left-2.5 top-2 w-3 h-3 rounded-full border-2 z-10 transition-transform group-hover:scale-125 ${
+                      log.action === "create"
+                        ? "bg-emerald-500 border-emerald-500"
+                        : log.action === "delete"
+                          ? "bg-red-500 border-red-500"
+                          : "bg-white dark:bg-black border-black dark:border-white"
+                    }`}
+                  />
 
-                <div className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">
-                  <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-black uppercase bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded text-black/60 dark:text-white/60">
-                          {log.entityType}
-                        </span>
-                        <span className="text-xs font-bold text-black/80 dark:text-white/90">
-                          {log.targetName}
+                  <div className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl p-6 shadow-sm hover:shadow-md transition-all">
+                    <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black uppercase bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded text-black/60 dark:text-white/60">
+                            {log.entityType}
+                          </span>
+                          <span className="text-xs font-bold text-black/80 dark:text-white/90">
+                            {log.targetName}
+                          </span>
+                        </div>
+
+                        <span className="text-[10px] font-mono text-black/40 dark:text-white/40 ml-1">
+                          ID: {log.entityId ? log.entityId : selectedCompanyId}
                         </span>
                       </div>
 
-                      <span className="text-[10px] font-mono text-black/40 dark:text-white/40 ml-1">
-                        ID: {log.entityId ? log.entityId : selectedCompanyId}
+                      <div className="flex items-center gap-4 text-[10px] text-black/40 dark:text-white/40 font-bold uppercase tracking-wider text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="flex items-center gap-1 text-black/80 dark:text-white/90">
+                            <User className="w-3 h-3" /> {log.user}
+                          </span>
+                          <span className="text-[8px] opacity-50">
+                            {log.userEmail}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col items-end border-l border-black/5 pl-4">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" /> {log.date}
+                          </span>
+                          <span className="flex items-center gap-1 text-[8px] opacity-60">
+                            <Clock className="w-2.5 h-2.5" /> {log.time}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-black/5 dark:bg-white/5">
+                        Field: {log.field}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-4 text-[10px] text-black/40 dark:text-white/40 font-bold uppercase tracking-wider text-right">
-                      <div className="flex flex-col items-end">
-                        <span className="flex items-center gap-1 text-black/80 dark:text-white/90">
-                          <User className="w-3 h-3" /> {log.user}
-                        </span>
-                        <span className="text-[8px] opacity-50">
-                          {log.userEmail}
-                        </span>
+                    <div className="flex items-center gap-6">
+                      <div className="flex-1 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
+                        <p className="text-[9px] uppercase font-bold text-black/30">
+                          Old Value
+                        </p>
+                        <p className="text-xs opacity-40 line-through truncate">
+                          {log.oldValue}
+                        </p>
                       </div>
 
-                      <div className="flex flex-col items-end border-l border-black/5 pl-4">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> {log.date}
-                        </span>
-                        <span className="flex items-center gap-1 text-[8px] opacity-60">
-                          <Clock className="w-2.5 h-2.5" /> {log.time}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+                      <ArrowRight className="w-4 h-4 text-black/10" />
 
-                  <div className="flex items-center gap-4 mb-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-black/5 dark:bg-white/5">
-                      Field: {log.field}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-6">
-                    <div className="flex-1 p-3 rounded-xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
-                      <p className="text-[9px] uppercase font-bold text-black/30">
-                        Old Value
-                      </p>
-                      <p className="text-xs opacity-40 line-through truncate">
-                        {log.oldValue}
-                      </p>
-                    </div>
-
-                    <ArrowRight className="w-4 h-4 text-black/10" />
-
-                    <div
-                      className={`flex-1 p-3 rounded-xl border ${
-                        log.action === "create"
-                          ? "bg-emerald-50/20 border-emerald-100"
-                          : "bg-black/[0.02] dark:bg-white/[0.02] border-black/5"
-                      }`}
-                    >
-                      <p className="text-[9px] uppercase font-bold text-black/30">
-                        New Value
-                      </p>
-                      <p
-                        className={`text-xs font-bold truncate ${
+                      <div
+                        className={`flex-1 p-3 rounded-xl border ${
                           log.action === "create"
-                            ? "text-emerald-600"
-                            : "text-blue-600"
+                            ? "bg-emerald-50/20 border-emerald-100"
+                            : "bg-black/[0.02] dark:bg-white/[0.02] border-black/5"
                         }`}
                       >
-                        {log.newValue}
-                      </p>
+                        <p className="text-[9px] uppercase font-bold text-black/30">
+                          New Value
+                        </p>
+                        <p
+                          className={`text-xs font-bold truncate ${
+                            log.action === "create"
+                              ? "text-emerald-600"
+                              : "text-blue-600"
+                          }`}
+                        >
+                          {log.newValue}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
           )}
 
           <div
