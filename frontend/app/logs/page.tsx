@@ -8,6 +8,12 @@ import { Clock, User, ArrowRight, Calendar } from "lucide-react";
 
 import { useLogs, useEntityLogs, useCompanies } from "@/hooks/useQueries";
 import { isImpField } from "@/lib/helpers";
+import { PageHeader } from "@/components/shared/page-header";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function LogsPage() {
   const loadMoreRef = React.useRef(null);
@@ -34,17 +40,25 @@ export default function LogsPage() {
     );
   }, [companies, search]);
 
-  const { logs: globalLogs, isLoading: isGlobalLoading } = useLogs(page, 20);
+  const {
+    logs: globalLogs,
+    isLoading: isGlobalLoading,
+    isError: isGlobalError,
+    refetch: refetchGlobal,
+  } = useLogs(page, 20);
 
-  const { logs: companyLogs, isLoading: isCompanyLoading } = useEntityLogs(
-    "Company",
-    selectedCompanyId,
-    idx,
-  );
+  const {
+    logs: companyLogs,
+    isLoading: isCompanyLoading,
+    isError: isCompanyError,
+    refetch: refetchCompany,
+  } = useEntityLogs("Company", selectedCompanyId, idx);
 
   const rawLogs = selectedCompanyId ? companyLogs : globalLogs;
 
   const isLoading = selectedCompanyId ? isCompanyLoading : isGlobalLoading;
+  const isError = selectedCompanyId ? isCompanyError : isGlobalError;
+  const refetchActive = selectedCompanyId ? refetchCompany : refetchGlobal;
 
   React.useEffect(() => {
     setAllLogs([]);
@@ -143,30 +157,26 @@ export default function LogsPage() {
       <main className="flex-1 flex flex-col min-w-0">
         <Navbar />
 
-        <div className="flex-1 p-8 max-w-5xl mx-auto w-full">
-          <header className="flex flex-col gap-6 mb-12">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight mb-2">
-                Activity Logs
-              </h1>
-              <p className="text-black/40 dark:text-white/40 font-medium">
-                Audit trail of all changes across the portal.
-              </p>
-            </div>
+        <div className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="mb-8 flex flex-col gap-6 sm:mb-12">
+            <PageHeader
+              title="Activity Logs"
+              description="Audit trail of all changes across the portal."
+            />
 
-            <div className="flex gap-4 flex-wrap">
-              <div className="flex-1 min-w-[300px] relative">
-                <input
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="relative min-w-0 flex-1 sm:min-w-[280px]">
+                <Input
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
                   }}
                   placeholder="Search companies..."
-                  className="w-full px-4 py-3 rounded-xl border border-black/10 dark:border-white/10 bg-transparent outline-none"
+                  className="h-11 rounded-xl px-4"
                 />
 
                 {search && !selectedCompanyId && (
-                  <div className="absolute z-10 mt-2 w-full rounded-xl border border-black/10 dark:border-white/10 overflow-hidden bg-white dark:bg-black max-h-64 overflow-y-auto">
+                  <div className="absolute z-10 mt-2 w-full rounded-xl border border-black/10 dark:border-white/10 overflow-hidden bg-white dark:bg-black max-h-64 overflow-y-auto shadow-lg">
                     {filteredCompanies.map((company: any) => (
                       <button
                         key={company._id}
@@ -193,19 +203,47 @@ export default function LogsPage() {
               </div>
 
               {selectedCompanyId && (
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setSelectedCompanyId("");
                     setSearch("");
                   }}
-                  className="px-4 py-3 rounded-xl border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5"
+                  className="h-11 shrink-0 rounded-xl px-4"
                 >
                   Clear Filter
-                </button>
+                </Button>
               )}
             </div>
-          </header>
+          </div>
 
+          {isError && allLogs.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card shadow-sm">
+              <ErrorState
+                title="Couldn't load activity logs"
+                description="There was a problem fetching the audit trail. Please try again."
+                onRetry={refetchActive}
+              />
+            </div>
+          ) : isLoading && allLogs.length === 0 ? (
+            <div className="space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+              ))}
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card shadow-sm">
+              <EmptyState
+                icon={Clock}
+                title="No activity yet"
+                description={
+                  selectedCompanyId
+                    ? "This company doesn't have any recorded changes yet."
+                    : "Changes made across the portal will show up here."
+                }
+              />
+            </div>
+          ) : (
           <div className="relative space-y-8">
             <div className="absolute left-4 top-2 bottom-2 w-px bg-black/5 dark:bg-white/10" />
 
@@ -308,12 +346,13 @@ export default function LogsPage() {
               </motion.div>
             ))}
           </div>
+          )}
 
           <div
             ref={loadMoreRef}
             className="h-10 flex items-center justify-center"
           >
-            {isLoading && (
+            {isLoading && allLogs.length > 0 && (
               <div className="animate-spin h-6 w-6 border-b-2 border-black dark:border-white rounded-full" />
             )}
           </div>

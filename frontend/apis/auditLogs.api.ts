@@ -20,4 +20,17 @@ export class AuditApis {
 
     return response;
   }
+
+  static async getFieldLogs(
+    entityType: string,
+    entityId: string,
+    field: string,
+    page = 1,
+  ) {
+    const { data: response } = await apiClient.get(
+      `/audit/${entityType}/${entityId}/field/${field}?page=${page}`,
+    );
+
+    return response;
+  }
 }

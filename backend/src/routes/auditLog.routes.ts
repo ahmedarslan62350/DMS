@@ -3,6 +3,7 @@ import {
   getAuditLogs,
   getAuditLogsByEntity,
   getEntityAuditLogs,
+  getFieldAuditLogs,
 } from "../controllers/auditLogs.controller";
 
 import { authenticate } from "../middlewares/auth.middleware";
@@ -22,6 +23,13 @@ router.get(
   authenticate,
   authorize("audit.read"),
   getAuditLogsByEntity
+);
+
+router.get(
+  "/:entityType/:entityId/field/:field",
+  authenticate,
+  authorize("audit.read"),
+  getFieldAuditLogs
 );
 
 router.get(

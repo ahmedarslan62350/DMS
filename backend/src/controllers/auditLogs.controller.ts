@@ -68,3 +68,37 @@ export const getEntityAuditLogs = async (req: Request, res: Response) => {
     res.status(500).json({ error });
   }
 };
+
+export const getFieldAuditLogs = async (req: Request, res: Response) => {
+  try {
+    const { entityType, entityId, field } = req.params;
+    const page = Number(req.query.page) || 1;
+    const limit = 7;
+    const skip = (page - 1) * limit;
+
+    const logs = await AuditLog.find({
+      entityType,
+      entityId,
+      field,
+    })
+      .populate("changedBy", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await AuditLog.countDocuments({
+      entityType,
+      entityId,
+      field,
+    });
+
+    res.json({
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      data: logs,
+    });
+  } catch (error) {
+    res.status(500).json({ error });
+  }
+};

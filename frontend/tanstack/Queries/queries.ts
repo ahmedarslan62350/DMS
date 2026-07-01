@@ -83,4 +83,18 @@ export class Queries {
       queryFn: () => CompanyApis.getCurrentMonthCharges(),
     };
   }
+
+  static fieldLogs(
+    entityType: string,
+    entityId: string,
+    field: string,
+    page = 1,
+    enabled = true,
+  ) {
+    return {
+      queryKey: ["fieldLogs", entityType, entityId, field, page],
+      queryFn: () => AuditApis.getFieldLogs(entityType, entityId, field, page),
+      enabled: enabled && !!entityType && !!entityId && !!field,
+    };
+  }
 }

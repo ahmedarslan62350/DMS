@@ -42,9 +42,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex bg-white dark:bg-black transition-colors duration-500 overflow-hidden">
       {/* Top Right Controls */}
-      <div className="absolute top-8 right-8 z-50">
+      <div className="absolute top-4 right-4 z-50 sm:top-8 sm:right-8">
         <button
           onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
           className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/10"
         >
           {theme === "dark" ? (
@@ -116,16 +117,16 @@ export default function LoginPage() {
       </div>
 
       {/* Right Login Form Section */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 relative">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
-          <div className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-[40px] p-10 shadow-2xl shadow-black/5 dark:shadow-white/5">
-            <div className="mb-10">
-              <h2 className="text-3xl font-bold tracking-tight mb-2">
+          <div className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-3xl sm:rounded-[40px] p-6 sm:p-10 shadow-2xl shadow-black/5 dark:shadow-white/5">
+            <div className="mb-8 sm:mb-10">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
                 Welcome back
               </h2>
               <p className="text-black/40 dark:text-white/40 font-medium">

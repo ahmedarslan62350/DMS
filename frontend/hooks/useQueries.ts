@@ -4,13 +4,14 @@ import { Queries } from "@/tanstack/Queries/queries";
 import { useQuery } from "@tanstack/react-query";
 
 export const useCompanies = (page?: number, limit?: number) => {
-  const { data, isLoading, isError } = useQuery(Queries.companies());
+  const { data, isLoading, isError, refetch } = useQuery(Queries.companies());
   const companies = data || [];
 
   return {
     companies,
     isLoading,
     isError,
+    refetch,
     count: companies.length,
   };
 };
@@ -80,6 +81,28 @@ export const useMonthlyCharges = () => {
 
   return {
     monthlyCharges: data || null,
+    isLoading,
+    isError,
+    refetch,
+  };
+};
+
+export const useFieldLogs = (
+  entityType: string,
+  entityId: string,
+  field: string,
+  page = 1,
+  enabled = true,
+) => {
+  const { data, isLoading, isError, refetch } = useQuery(
+    Queries.fieldLogs(entityType, entityId, field, page, enabled),
+  );
+
+  return {
+    logs: data?.data || [],
+    total: data?.total || 0,
+    page: data?.page || 1,
+    pages: data?.pages || 1,
     isLoading,
     isError,
     refetch,

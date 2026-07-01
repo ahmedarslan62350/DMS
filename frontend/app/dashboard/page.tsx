@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Navbar } from "@/components/navbar";
 import { StatsCards } from "@/components/stats-cards";
 import { RightPanel } from "@/components/right-panel";
+import { PageHeader } from "@/components/shared/page-header";
 import { motion } from "motion/react";
 
 export default function DashboardPage() {
@@ -15,29 +16,16 @@ export default function DashboardPage() {
       <main className="flex-1 flex flex-col min-w-0">
         <Navbar />
 
-        <div className="flex-1 p-8 flex gap-8">
-          <div className="flex-1 flex flex-col gap-8 min-w-0">
-            <header>
-              <motion.h1
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="text-4xl font-bold tracking-tight mb-2"
-              >
-                Dashboard Overview
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-black/40 dark:text-white/40 font-medium"
-              >
-                Key metrics and upcoming renewals at a glance.
-              </motion.p>
-            </header>
+        <div className="flex flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-6 lg:flex-row lg:p-8">
+          <div className="flex min-w-0 flex-1 flex-col gap-6 sm:gap-8">
+            <PageHeader
+              title="Dashboard Overview"
+              description="Key metrics and upcoming renewals at a glance."
+            />
 
             <StatsCards />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -76,7 +64,7 @@ export default function DashboardPage() {
                 className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl p-6"
               >
                 <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <button className="p-4 rounded-xl border border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-sm font-bold">
                     Add Company
                   </button>

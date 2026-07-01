@@ -3,30 +3,69 @@
 import * as React from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Navbar } from "@/components/navbar";
-import { motion, AnimatePresence } from "motion/react";
 import {
   UserPlus,
-  MoreHorizontal,
   Edit2,
   Trash2,
   Slash,
-  X,
   Shield,
   Mail,
   Lock,
-  Check,
+  Users as UsersIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRoles, useUsers } from "@/hooks/useQueries";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Mutations } from "@/tanstack/Mutations/mutations";
+import { PageHeader } from "@/components/shared/page-header";
+import { EmptyState } from "@/components/shared/empty-state";
+import { ErrorState } from "@/components/shared/error-state";
+import { TableSkeleton } from "@/components/shared/table-skeleton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  ColumnResizeHandle,
+  useResizableColumns,
+  type ResizableColumnDef,
+} from "@/components/ui/resizable-table";
+
+const COLUMNS: (ResizableColumnDef & { label: string; align?: "right" })[] = [
+  { id: "name", width: 220, minWidth: 160, label: "User Name" },
+  { id: "email", width: 230, minWidth: 160, label: "Email" },
+  { id: "role", width: 130, minWidth: 100, label: "Role" },
+  { id: "status", width: 120, minWidth: 90, label: "Status" },
+  { id: "permissions", width: 140, minWidth: 100, label: "Permissions" },
+  { id: "actions", width: 120, minWidth: 100, maxWidth: 160, label: "Actions", align: "right" },
+];
 
 export default function ManageUsersPage() {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const { users: usersData } = useUsers();
+  const { users: usersData, isLoading, isError, refetch } = useUsers();
   const { roles: rolesData } = useRoles();
   const queryClient = useQueryClient();
   const createUserMutation = useMutation(Mutations.createUser(queryClient));
+
+  const { widths, startResize, nudgeColumn, resetColumn } =
+    useResizableColumns(COLUMNS);
 
   const users = (usersData || []).map((u: any) => {
     const getPermissionLabel = (roleName: string) => {
@@ -78,242 +117,227 @@ export default function ManageUsersPage() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0">
+      <main className="flex min-w-0 flex-1 flex-col">
         <Navbar />
-        <div className="flex-1 p-8 flex flex-col gap-8">
-          <header className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight mb-2">
-                User Management
-              </h1>
-              <p className="text-black/40 dark:text-white/40 font-medium">
-                Manage system users, roles, and access levels.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
-            >
-              <UserPlus className="w-5 h-5" /> Create User
-            </button>
-          </header>
+        <div className="flex flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-6 lg:p-8">
+          <PageHeader
+            title="User Management"
+            description="Manage system users, roles, and access levels."
+            actions={
+              <Button onClick={() => setIsModalOpen(true)}>
+                <UserPlus className="h-4 w-4" /> Create User
+              </Button>
+            }
+          />
 
-          <div className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-black/[0.02] dark:bg-white/[0.02] text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40">
-                    <th className="px-6 py-4">User Name</th>
-                    <th className="px-6 py-4">Email</th>
-                    <th className="px-6 py-4">Role</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4">Permissions</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/10">
-                  {users.map((user: any) => (
-                    <tr
-                      key={user.id}
-                      className="group hover:bg-black/[0.01] dark:hover:bg-white/[0.01] transition-colors"
+          <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <Table className="w-max min-w-full table-fixed">
+              <colgroup>
+                {COLUMNS.map((col) => (
+                  <col key={col.id} style={{ width: widths[col.id] }} />
+                ))}
+              </colgroup>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  {COLUMNS.map((col) => (
+                    <TableHead
+                      key={col.id}
+                      className={col.align === "right" ? "text-right" : undefined}
                     >
-                      <td className="px-6 py-4">
+                      {col.label}
+                      <ColumnResizeHandle
+                        columnLabel={col.label}
+                        width={widths[col.id]}
+                        minWidth={col.minWidth}
+                        maxWidth={col.maxWidth}
+                        onPointerDown={startResize(col.id)}
+                        onNudge={(direction) => nudgeColumn(col.id, direction)}
+                        onReset={() => resetColumn(col.id)}
+                      />
+                    </TableHead>
+                  ))}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableSkeleton rows={5} columns={COLUMNS.length} />
+                ) : isError ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={COLUMNS.length} className="whitespace-normal">
+                      <ErrorState
+                        title="Couldn't load users"
+                        description="There was a problem fetching the user list. Please try again."
+                        onRetry={refetch}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : users.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={COLUMNS.length} className="whitespace-normal">
+                      <EmptyState
+                        icon={UsersIcon}
+                        title="No users yet"
+                        description="Create your first user to start managing access to the portal."
+                        action={
+                          <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                            Create User
+                          </Button>
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  users.map((user: any) => (
+                    <TableRow key={user.id} className="group">
+                      <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center font-bold text-xs">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
                             {user.name.charAt(0)}
                           </div>
-                          <span className="font-bold text-sm">{user.name}</span>
+                          <span className="truncate text-sm font-semibold">
+                            {user.name}
+                          </span>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-black/60 dark:text-white/60">
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
                         {user.email}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={cn(
-                            "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
                             user.role === "Admin"
-                              ? "bg-red-500/10 text-red-500"
+                              ? "destructive"
                               : user.role === "Manager"
-                                ? "bg-blue-500/10 text-blue-500"
-                                : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40",
-                          )}
+                                ? "default"
+                                : "neutral"
+                          }
                         >
                           {user.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider",
-                            user.status === "Active"
-                              ? "text-emerald-500"
-                              : "text-red-500",
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "w-1.5 h-1.5 rounded-full",
-                              user.status === "Active"
-                                ? "bg-emerald-500"
-                                : "bg-red-500",
-                            )}
-                          />
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.status === "Active" ? "success" : "neutral"}>
                           {user.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-black/60 dark:text-white/60">
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
                         {user.permissions}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <button className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white">
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-black/40 dark:text-white/40 hover:text-red-500">
-                            <Slash className="w-4 h-4" />
-                          </button>
-                          <button className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-black/40 dark:text-white/40 hover:text-red-500">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Edit ${user.name}`}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="hover:text-destructive"
+                            aria-label={`Deactivate ${user.name}`}
+                          >
+                            <Slash className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
+                            className="hover:text-destructive"
+                            aria-label={`Delete ${user.name}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
       </main>
 
-      {/* Create User Modal */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed scale-75 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-xl bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl z-[60] overflow-hidden"
-            >
-              <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
-                <h2 className="text-xl font-bold tracking-tight">
-                  Create New User
-                </h2>
-                <button
-                  onClick={() => setIsModalOpen(false)}
-                  className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New User</DialogTitle>
+            <DialogDescription>
+              Add a new user and assign their role and access level.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={onSubmit}>
+            <DialogBody className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="user-name">
+                  <Shield className="h-3 w-3" /> Full Name
+                </Label>
+                <Input
+                  id="user-name"
+                  type="text"
+                  name="name"
+                  placeholder="John Doe"
+                  required
+                  className="h-10"
+                />
               </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="user-email">
+                  <Mail className="h-3 w-3" /> Email Address
+                </Label>
+                <Input
+                  id="user-email"
+                  type="email"
+                  name="email"
+                  placeholder="john@example.com"
+                  required
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="user-password">
+                  <Lock className="h-3 w-3" /> Password
+                </Label>
+                <Input
+                  id="user-password"
+                  name="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  className="h-10"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="user-role">Role</Label>
+                <select
+                  id="user-role"
+                  name="role"
+                  className="h-10 w-full rounded-lg border border-input bg-transparent px-3 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30"
+                >
+                  {roles.map((r: any) => (
+                    <option value={r.value} key={r.value}>
+                      {r?.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </DialogBody>
 
-              <form onSubmit={onSubmit} className="p-8 space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                      <Shield className="w-3 h-3" /> Full Name
-                    </label>
-                    <input
-                      type="text"
-                      name="name"
-                      placeholder="John Doe"
-                      className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                      <Mail className="w-3 h-3" /> Email Address
-                    </label>
-                    <input
-                      type="email"
-                      name="email"
-                      placeholder="john@example.com"
-                      className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                      <Lock className="w-3 h-3" /> Password
-                    </label>
-                    <input
-                      name="password"
-                      type="password"
-                      placeholder="••••••••"
-                      className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40">
-                      Role
-                    </label>
-                    <select
-                      name="role"
-                      className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                    >
-                      {roles.map((r: any) => (
-                        <option value={r.value} key={r.value}>
-                          {r?.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                {/* 
-                <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40">
-                    Permissions
-                  </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      "Create Company",
-                      "Edit Company",
-                      "Delete Company",
-                      "View Logs",
-                      "Manage Users",
-                    ].map((perm) => (
-                      <label
-                        key={perm}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] cursor-pointer transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded border-black/20 dark:border-white/20 text-black dark:text-white focus:ring-black dark:focus:ring-white"
-                        />
-                        <span className="text-xs font-medium">{perm}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div> */}
-
-                <div className="pt-4 flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-8 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-bold hover:scale-[1.02] active:scale-[0.98] transition-all"
-                  >
-                    Create User
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setIsModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Create User</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

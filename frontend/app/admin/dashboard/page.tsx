@@ -6,6 +6,7 @@ import { Navbar } from '@/components/navbar';
 import { motion } from 'motion/react';
 import { Users, UserCheck, Building2, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader } from '@/components/shared/page-header';
 
 const adminStats = [
   { label: 'Total Users', value: '42', icon: Users, trend: '+5%' },
@@ -20,24 +21,11 @@ export default function AdminDashboardPage() {
       <Sidebar />
       <main className="flex-1 flex flex-col min-w-0">
         <Navbar />
-        <div className="flex-1 p-8 flex flex-col gap-8">
-          <header>
-            <motion.h1 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-4xl font-bold tracking-tight mb-2"
-            >
-              Admin Dashboard
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-black/40 dark:text-white/40 font-medium"
-            >
-              System-wide overview and administrative controls.
-            </motion.p>
-          </header>
+        <div className="flex flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-6 lg:p-8">
+          <PageHeader
+            title="Admin Dashboard"
+            description="System-wide overview and administrative controls."
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {adminStats.map((stat, index) => (

@@ -6,6 +6,7 @@ import { Navbar } from '@/components/navbar';
 import { CompanyTable } from '@/components/company-table';
 import { AdminEditCompanyModal } from '@/components/admin-edit-company-modal';
 import { AddCompanyModal } from '@/components/add-company-model';
+import { PageHeader } from '@/components/shared/page-header';
 import { motion } from 'motion/react';
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Mutations } from "@/tanstack/Mutations/mutations";
@@ -87,24 +88,11 @@ export default function CompaniesPage() {
       <main className="flex-1 flex flex-col min-w-0">
         <Navbar />
         
-        <div className="flex-1 p-8 flex flex-col gap-8">
-          <header>
-            <motion.h1 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-4xl font-bold tracking-tight mb-2"
-            >
-              Companies
-            </motion.h1>
-            <motion.p 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-black/40 dark:text-white/40 font-medium"
-            >
-              Manage and monitor all registered companies.
-            </motion.p>
-          </header>
+        <div className="flex flex-1 flex-col gap-6 p-4 sm:gap-8 sm:p-6 lg:p-8">
+          <PageHeader
+            title="Companies"
+            description="Manage and monitor all registered companies."
+          />
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}

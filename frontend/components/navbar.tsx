@@ -10,12 +10,14 @@ import {
   Settings,
   UserCircle,
   Bell,
+  Menu,
 } from "lucide-react";
 import { useTheme } from "./theme-provider";
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useMe } from "@/hooks/useMe";
 import { Button } from "./ui/button";
+import { toggleMobileSidebar } from "@/hooks/useSidebar";
 
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();
@@ -28,22 +30,32 @@ export function Navbar() {
   };
 
   return (
-    <header className="h-20 border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-black/80 backdrop-blur-md sticky top-0 z-40 px-8 flex items-center justify-between">
-      <div className="flex-1 max-w-xl">
-        <div className="relative group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40 dark:text-white/40 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" />
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-black/5 bg-white/80 px-4 backdrop-blur-md sm:h-20 sm:px-6 lg:px-8 dark:border-white/10 dark:bg-black/80">
+      <button
+        onClick={toggleMobileSidebar}
+        aria-label="Toggle navigation menu"
+        aria-controls="app-sidebar"
+        className="rounded-xl p-2 text-black/60 transition-colors hover:bg-black/5 hover:text-black lg:hidden dark:text-white/60 dark:hover:bg-white/5 dark:hover:text-white"
+      >
+        <Menu className="h-5 w-5" />
+      </button>
+
+      <div className="hidden max-w-xl flex-1 md:block">
+        <div className="group relative">
+          <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-black/40 transition-colors group-focus-within:text-black dark:text-white/40 dark:group-focus-within:text-white" />
           <input
             type="text"
             placeholder="Search companies, logs, or alerts..."
-            className="w-full bg-black/5 dark:bg-white/5 border-none rounded-2xl py-2.5 pl-11 pr-4 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white transition-all outline-none"
+            className="w-full rounded-2xl border-none bg-black/5 py-2.5 pr-4 pl-11 text-sm transition-all outline-none focus:ring-2 focus:ring-black dark:bg-white/5 dark:focus:ring-white"
           />
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="ml-auto flex items-center gap-2 sm:gap-4">
         <button
           onClick={toggleTheme}
-          className="p-2.5 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-black/5 dark:border-white/10"
+          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+          className="rounded-2xl border border-black/5 p-2.5 transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
         >
           {theme === "dark" ? (
             <Sun className="w-5 h-5" />
@@ -52,7 +64,10 @@ export function Navbar() {
           )}
         </button>
 
-        <button className="p-2.5 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-black/5 dark:border-white/10 relative">
+        <button
+          aria-label="Notifications"
+          className="relative hidden rounded-2xl border border-black/5 p-2.5 transition-colors hover:bg-black/5 sm:block dark:border-white/10 dark:hover:bg-white/5"
+        >
           <Bell className="w-5 h-5" />
           <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-black" />
         </button>
@@ -60,12 +75,14 @@ export function Navbar() {
         <div className="relative">
           <button
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center gap-2 p-1 pr-3 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors border border-black/5 dark:border-white/10"
+            aria-haspopup="menu"
+            aria-expanded={isProfileOpen}
+            className="flex items-center gap-2 rounded-full border border-black/5 p-1 pr-1 transition-colors hover:bg-black/5 sm:pr-3 dark:border-white/10 dark:hover:bg-white/5"
           >
             <div className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center">
               <User className="w-4 h-4 text-white dark:text-black" />
             </div>
-            <span className="text-sm font-medium">{me.user?.name}</span>
+            <span className="hidden text-sm font-medium sm:inline">{me.user?.name}</span>
           </button>
 
           <AnimatePresence>

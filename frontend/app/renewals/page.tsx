@@ -7,6 +7,8 @@ import { motion } from "motion/react";
 import { Bell, Calendar, Building2, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanies } from "@/hooks/useQueries";
+import { PageHeader } from "@/components/shared/page-header";
+import { EmptyState } from "@/components/shared/empty-state";
 
 export default function RenewalsPage() {
   const { companies } = useCompanies();
@@ -48,70 +50,80 @@ export default function RenewalsPage() {
       <main className="flex-1 flex flex-col min-w-0">
         <Navbar />
 
-        <div className="flex-1 p-8 max-w-5xl mx-auto w-full">
-          <header className="mb-12">
-            <h1 className="text-4xl font-bold tracking-tight mb-2">
-              Renewal Alerts
-            </h1>
-            <p className="text-black/40 dark:text-white/40 font-medium">
-              Monitor upcoming subscription renewals and payment deadlines.
-            </p>
-          </header>
+        <div className="mx-auto w-full max-w-5xl flex-1 p-4 sm:p-6 lg:p-8">
+          <PageHeader
+            title="Renewal Alerts"
+            description="Monitor upcoming subscription renewals and payment deadlines."
+            className="mb-8 sm:mb-12"
+          />
 
-          <div className="grid gap-4">
-            {renewals.map((item: any, index: number) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl p-6 flex items-center justify-between hover:shadow-md transition-all group"
-              >
-                <div className="flex items-center gap-6">
-                  <div
-                    className={cn(
-                      "w-12 h-12 rounded-xl flex items-center justify-center",
-                      item.status === "Urgent"
-                        ? "bg-red-500/10 text-red-500"
-                        : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40",
-                    )}
-                  >
-                    <Bell className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                      {item.name}
-                      {item.status === "Urgent" && (
-                        <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">
-                          Urgent
-                        </span>
+          {renewals.length === 0 ? (
+            <div className="rounded-2xl border border-border bg-card shadow-sm">
+              <EmptyState
+                icon={Bell}
+                title="No renewals due soon"
+                description="Companies with a renewal within the next 5 days will show up here."
+              />
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {renewals.map((item: any, index: number) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="group flex flex-col gap-4 rounded-2xl border border-black/5 bg-white p-4 transition-all hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-6 dark:border-white/10 dark:bg-black"
+                >
+                  <div className="flex items-center gap-4 sm:gap-6">
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
+                        item.status === "Urgent"
+                          ? "bg-red-500/10 text-red-500"
+                          : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40",
                       )}
-                    </h3>
-                    <div className="flex items-center gap-4 mt-1 text-sm text-black/40 dark:text-white/40">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" /> {item.date}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Building2 className="w-4 h-4" /> {item.amount}
-                      </span>
+                    >
+                      <Bell className="w-6 h-6" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="flex flex-wrap items-center gap-2 text-lg font-bold">
+                        <span className="truncate">{item.name}</span>
+                        {item.status === "Urgent" && (
+                          <span className="text-[10px] bg-red-500 text-white px-2 py-0.5 rounded-full uppercase tracking-widest">
+                            Urgent
+                          </span>
+                        )}
+                      </h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-black/40 dark:text-white/40">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" /> {item.date}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Building2 className="w-4 h-4" /> {item.amount}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-8">
-                  <div className="text-right">
-                    <p className="text-2xl font-bold">{item.days}</p>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 dark:text-white/40">
-                      Days Left
-                    </p>
+                  <div className="flex items-center justify-between gap-8 sm:justify-end">
+                    <div className="text-right">
+                      <p className="text-2xl font-bold">{item.days}</p>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-black/40 dark:text-white/40">
+                        Days Left
+                      </p>
+                    </div>
+                    <button
+                      aria-label={`View ${item.name} renewal details`}
+                      className="p-3 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:scale-105 transition-all active:scale-95"
+                    >
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
                   </div>
-                  <button className="p-3 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:scale-105 transition-all active:scale-95">
-                    <ArrowRight className="w-5 h-5" />
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

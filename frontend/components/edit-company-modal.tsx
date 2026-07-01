@@ -90,7 +90,7 @@ export function EditCompanyModal({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed scale-90 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[100dvh] md:h-auto md:max-h-[90vh] overflow-y-auto bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-3xl shadow-2xl z-[60] scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-neutral-800 scrollbar-track-transparent"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[100dvh] md:h-auto md:max-h-[90vh] overflow-y-auto bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-none sm:rounded-3xl shadow-2xl z-[60] scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-neutral-800 scrollbar-track-transparent"
           >
             <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
               <div>
@@ -109,8 +109,8 @@ export function EditCompanyModal({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
                     <Building2 className="w-3 h-3" /> Company Name

@@ -60,6 +60,7 @@ const AuditLogSchema = new Schema<AuditLogDocument>(
 
 AuditLogSchema.index({ entityId: 1 });
 AuditLogSchema.index({ entityType: 1 });
+AuditLogSchema.index({ entityType: 1, entityId: 1, field: 1 });
 AuditLogSchema.index({ createdAt: -1 });
 
 export const AuditLog = mongoose.model<AuditLogDocument>(
