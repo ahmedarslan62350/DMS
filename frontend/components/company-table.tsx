@@ -19,16 +19,24 @@ import { Input } from "./ui/input";
 interface CompanyTableProps {
   onEditClick: (company: any) => void;
   onAddClick: () => void;
+  onPaidAmountChange: (companyId: string, newAmount: number) => Promise<void>;
 }
 
 export function CompanyTable({
   onEditClick,
   onAddClick,
+  onPaidAmountChange,
 }: Readonly<CompanyTableProps>) {
   const [status, setStatus] = React.useState<"Active" | "Inactive" | "All">(
     "Active",
   );
+  const [paymentStatus, setPaymentStatus] = React.useState<
+    "All" | "Paid" | "Not Paid"
+  >("All");
   const [search, setSearch] = React.useState("");
+  const [localPaidAmounts, setLocalPaidAmounts] = React.useState<Record<string, number>>({});
+  const [originalPaidAmounts, setOriginalPaidAmounts] = React.useState<Record<string, number>>({});
+  const [savingPaidAmounts, setSavingPaidAmounts] = React.useState<Set<string>>(new Set());
   const today = new Date();
 
   const { companies: companiesData } = useCompanies() || { data: [] };
@@ -39,8 +47,10 @@ export function CompanyTable({
       name: c.companyName,
       joiningDate: new Date(c.joiningDate).toISOString().split("T")[0],
       dialerLink: c.dialerLink,
+      intId: c.intId,
       servers: c.noOfServers || 0,
       charges: c.serverCharges,
+      paidAmount: c.paidAmount || 0,
       password: c.password,
       renewalDate: new Date(c.renewalDate).toISOString().split("T")[0],
       inactiveDate: c.inactiveDate
@@ -53,13 +63,29 @@ export function CompanyTable({
   }, [companiesData]);
 
   const filteredCompanies = React.useMemo(() => {
-    if (status === "All") return allCompanies;
-    return allCompanies.filter(
+    const searchLower = search.toLowerCase();
+    let filtered = allCompanies;
+
+    // Filter by status
+    if (status !== "All") {
+      filtered = filtered.filter((c: any) => c.status === status);
+    }
+
+    // Filter by payment status
+    if (paymentStatus === "Paid") {
+      filtered = filtered.filter((c: any) => c.paidAmount >= c.charges);
+    } else if (paymentStatus === "Not Paid") {
+      filtered = filtered.filter((c: any) => c.paidAmount < c.charges);
+    }
+
+    // Filter by search
+    return filtered.filter(
       (c: any) =>
-        c.status === status &&
-        c.name.toLowerCase().includes(search.toLowerCase()),
+        c.name.toLowerCase().includes(searchLower) ||
+        (c.dialerLink && c.dialerLink.toLowerCase().includes(searchLower)) ||
+        (c.intId && c.intId.toString().includes(search))
     );
-  }, [status, allCompanies, search]);
+  }, [status, paymentStatus, allCompanies, search]);
 
   const companies = React.useMemo(() => {
     const companies = filteredCompanies
@@ -115,6 +141,24 @@ export function CompanyTable({
               </SelectGroup>
             </SelectContent>
           </Select>
+          <Select
+            value={paymentStatus}
+            onValueChange={(value: "All" | "Paid" | "Not Paid") =>
+              setPaymentStatus(value)
+            }
+          >
+            <SelectTrigger className="w-1/4 max-w-48">
+              <SelectValue placeholder="Payment" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectLabel>Payment</SelectLabel>
+                <SelectItem value="All">All</SelectItem>
+                <SelectItem value="Paid">Paid</SelectItem>
+                <SelectItem value="Not Paid">Not Paid</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
           <Button
             onClick={onAddClick}
             className=" font-medium px-4 py-2 rounded-xl bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition-opacity"
@@ -133,6 +177,7 @@ export function CompanyTable({
               <th className="px-6 min-w-[150px] py-4">Password</th>
               <th className="px-6 min-w-[150px] py-4">Servers</th>
               <th className="px-6 min-w-[150px] py-4">Charges</th>
+              <th className="px-6 min-w-[150px] py-4">Paid Amount</th>
               <th className="px-6 min-w-[150px] py-4">Status</th>
               <th className="px-6 min-w-[150px] py-4">Inactive Date</th>
               <th className="px-6 py-4 w-80">Renewal Details</th>
@@ -150,7 +195,7 @@ export function CompanyTable({
                 <td className="px-6 py-4">
                   <p className="font-bold">{company.name}</p>
                   <p className="text-[10px] font-mono text-black/40 dark:text-white/40">
-                    ID: {company.id}
+                    ID: {company.intId}
                   </p>
                 </td>
                 <td className="px-6 py-4  text-black/60 dark:text-white/60">
@@ -174,6 +219,77 @@ export function CompanyTable({
                 </td>
                 <td className="px-6 py-4">
                   <span className=" font-bold">${company.charges}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={localPaidAmounts[company.id] !== undefined ? localPaidAmounts[company.id] : company.paidAmount}
+                      onChange={(e) => {
+                        const newValue = parseFloat(e.target.value) || 0;
+                        // Store original value on first change
+                        setOriginalPaidAmounts((prev) => {
+                          if (prev[company.id] === undefined) {
+                            return { ...prev, [company.id]: company.paidAmount };
+                          }
+                          return prev;
+                        });
+                        // Update local value immediately
+                        setLocalPaidAmounts((prev) => ({
+                          ...prev,
+                          [company.id]: newValue,
+                        }));
+                      }}
+                      className="w-20 bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                      min="0"
+                      step="0.01"
+                    />
+                    {localPaidAmounts[company.id] !== undefined && (
+                      <button
+                        onClick={async () => {
+                          const newValue = localPaidAmounts[company.id];
+                          setSavingPaidAmounts((prev) => new Set([...prev, company.id]));
+                          try {
+                            await onPaidAmountChange(company.id, newValue);
+                            // On success, clear both states - TanStack Query will refresh data
+                            setLocalPaidAmounts((prev) => {
+                              const updated = { ...prev };
+                              delete updated[company.id];
+                              return updated;
+                            });
+                            setOriginalPaidAmounts((prev) => {
+                              const updated = { ...prev };
+                              delete updated[company.id];
+                              return updated;
+                            });
+                          } catch (error) {
+                            // On failure, revert to original amount
+                            setLocalPaidAmounts((prev) => {
+                              const updated = { ...prev };
+                              delete updated[company.id];
+                              return updated;
+                            });
+                            setOriginalPaidAmounts((prev) => {
+                              const updated = { ...prev };
+                              delete updated[company.id];
+                              return updated;
+                            });
+                            console.error("Failed to update paid amount:", error);
+                          } finally {
+                            setSavingPaidAmounts((prev) => {
+                              const updated = new Set(prev);
+                              updated.delete(company.id);
+                              return updated;
+                            });
+                          }
+                        }}
+                        disabled={savingPaidAmounts.has(company.id)}
+                        className="px-2 py-1 text-xs font-bold bg-black dark:bg-white text-white dark:text-black rounded-lg hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {savingPaidAmounts.has(company.id) ? "Saving..." : "Save"}
+                      </button>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4">
                   <span

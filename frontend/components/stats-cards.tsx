@@ -2,12 +2,13 @@
 
 import * as React from "react";
 import { motion } from "motion/react";
-import { Building2, CheckCircle2, Calendar, Server } from "lucide-react";
+import { Building2, CheckCircle2, Calendar, Server, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCompanies } from "@/hooks/useQueries";
+import { useCompanies, useMonthlyCharges } from "@/hooks/useQueries";
 
 export function StatsCards() {
   const { companies } = useCompanies() || [];
+  const { monthlyCharges } = useMonthlyCharges();
 
   const activeCompanies = companies.filter(
     (c: any) => c.status === "active",
@@ -28,13 +29,11 @@ export function StatsCards() {
     );
   }).length;
 
+  const totalCharges = monthlyCharges?.totalCharges || 0;
+  const totalPaid = monthlyCharges?.totalPaid || 0;
+  const totalPending = monthlyCharges?.totalPending || 0;
+
   const stats = [
-    {
-      label: "Total Companies",
-      value: companies.length,
-      icon: Building2,
-      trend: "+0%",
-    },
     {
       label: "Active Companies",
       value: activeCompanies,
@@ -42,16 +41,22 @@ export function StatsCards() {
       trend: "+Stable",
     },
     {
-      label: "Renewals This Month",
-      value: renewalsThisMonth.toString(),
-      icon: Calendar,
-      trend: "Upcoming",
+      label: "Total Charges",
+      value: `$${totalCharges}`,
+      icon: DollarSign,
+      trend: "Monthly",
     },
     {
-      label: "Total Servers",
-      value: totalServers.toString(),
-      icon: Server,
-      trend: "+18%",
+      label: "Total Paid",
+      value: `$${totalPaid}`,
+      icon: DollarSign,
+      trend: "Collected",
+    },
+    {
+      label: "Total Pending",
+      value: `$${totalPending}`,
+      icon: DollarSign,
+      trend: "Due",
     },
   ];
 

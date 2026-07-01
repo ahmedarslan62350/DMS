@@ -22,6 +22,7 @@ interface Company {
   password: string;
   servers: number;
   charges: number;
+  paidAmount: number;
   renewalDate: string;
   status: string;
   comment: string;
@@ -46,6 +47,7 @@ export function AddCompanyModal({
     password: "",
     servers: 1,
     charges: 0,
+    paidAmount: 0,
     renewalDate: "",
     status: "Active",
     comment: "",
@@ -67,6 +69,7 @@ export function AddCompanyModal({
       password: "",
       servers: 1,
       charges: 0,
+      paidAmount: 0,
       renewalDate: "",
       status: "Active",
       comment: "",
@@ -180,6 +183,23 @@ export function AddCompanyModal({
                       handleChange("charges", Number.parseInt(e.target.value))
                     }
                     className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
+                    <DollarSign className="w-3 h-3" /> Paid Amount
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="e.g. $500"
+                    value={formData.paidAmount}
+                    onChange={(e) =>
+                      handleChange("paidAmount", Number.parseFloat(e.target.value))
+                    }
+                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
+                    min="0"
+                    step="0.01"
                   />
                 </div>
 

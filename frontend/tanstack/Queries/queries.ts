@@ -76,4 +76,11 @@ export class Queries {
       enabled: !!entityType && !!entityId,
     };
   }
+
+  static currentMonthCharges() {
+    return {
+      queryKey: ["monthlyCharges", "current"],
+      queryFn: () => CompanyApis.getCurrentMonthCharges(),
+    };
+  }
 }

@@ -10,6 +10,7 @@ import adminUserRoutes from "./routes/adminUser.routes";
 import adminRoleRoutes from "./routes/adminRole.routes";
 import adminPermissionRoutes from "./routes/adminPermission.routes";
 import auditRoutes from "./routes/auditLog.routes";
+import monthlyChargesRoutes from "./routes/monthlyCharges.routes";
 import rateLimit from "express-rate-limit";
 import { ipWhitelist } from "./middlewares/whitelistedIps.middleware";
 
@@ -37,6 +38,7 @@ app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/roles", adminRoleRoutes);
 app.use("/api/admin/permissions", adminPermissionRoutes);
 app.use("/api/audit", auditRoutes);
+app.use("/api/monthly-charges", monthlyChargesRoutes);
 
 app.get("/", authenticate, authorize("company.read"), (req, res) => {
   res.json({

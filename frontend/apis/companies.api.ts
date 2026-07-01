@@ -55,4 +55,10 @@ export class CompanyApis {
 
     return response;
   }
+
+  static async getCurrentMonthCharges() {
+    const { data: response } = await apiClient.get("/monthly-charges/current");
+
+    return response;
+  }
 }

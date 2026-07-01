@@ -25,10 +25,12 @@ export default function LogsPage() {
   const filteredCompanies = React.useMemo(() => {
     if (!search.trim()) return companies;
 
+    const searchLower = search.toLowerCase();
     return companies.filter((c: any) =>
       (c.companyName || c.name || "")
         .toLowerCase()
-        .includes(search.toLowerCase()),
+        .includes(searchLower) ||
+      (c.dialerLink && c.dialerLink.toLowerCase().includes(searchLower)),
     );
   }, [companies, search]);
 
@@ -176,7 +178,7 @@ export default function LogsPage() {
                       >
                         {company.companyName || company.name}
                         <span className="text-[10px] font-mono text-black/40 dark:text-white/40 ml-3">
-                          ID: {company._id}
+                          ID: {company.intId}
                         </span>
                       </button>
                     ))}

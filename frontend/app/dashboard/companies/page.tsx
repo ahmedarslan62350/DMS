@@ -28,7 +28,9 @@ export default function CompaniesPage() {
         dialerLink: updatedCompany.dialerLink,
         noOfServers: updatedCompany.servers,
         serverCharges: updatedCompany.charges,
+        paidAmount: updatedCompany.paidAmount,
         renewalDate: updatedCompany.renewalDate,
+        joiningDate: updatedCompany.joiningDate,
         comment: updatedCompany.comment,
         password: updatedCompany.password,
         status: updatedCompany.status.toLowerCase(),
@@ -46,6 +48,7 @@ export default function CompaniesPage() {
       password: newCompany.password,
       noOfServers: newCompany.servers,
       serverCharges: newCompany.charges,
+      paidAmount: newCompany.paidAmount || 0,
       renewalDate: newCompany.renewalDate,
       joiningDate: newCompany.joiningDate,
       comment: newCompany.comment,
@@ -53,6 +56,28 @@ export default function CompaniesPage() {
       additionalComment: newCompany.additionalComment,
     });
     setIsAddModalOpen(false);
+  };
+
+  const handlePaidAmountChange = async (companyId: string, newAmount: number): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      companyMutation.mutate(
+        {
+          id: companyId,
+          data: {
+            paidAmount: newAmount,
+          },
+        },
+        {
+          onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ["companies"] });
+            // Wait for the refetch to complete
+            await queryClient.refetchQueries({ queryKey: ["companies"] });
+            resolve();
+          },
+          onError: (error) => reject(error),
+        }
+      );
+    });
   };
 
   return (
@@ -89,6 +114,7 @@ export default function CompaniesPage() {
             <CompanyTable
               onEditClick={(company) => setEditingCompany(company)}
               onAddClick={() => setIsAddModalOpen(true)}
+              onPaidAmountChange={handlePaidAmountChange}
             />
           </motion.div>
         </div>

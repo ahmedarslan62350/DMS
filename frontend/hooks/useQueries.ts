@@ -73,3 +73,15 @@ export const useRoles = () => {
   };
 };
 
+export const useMonthlyCharges = () => {
+  const { data, isLoading, isError, refetch } = useQuery(
+    Queries.currentMonthCharges(),
+  );
+
+  return {
+    monthlyCharges: data || null,
+    isLoading,
+    isError,
+    refetch,
+  };
+};

@@ -31,7 +31,7 @@ interface Company {
   additionalComment: string;
 }
 
-interface EditCompanyModalProps {
+interface AdminEditCompanyModalProps {
   isOpen: boolean;
   onClose: () => void;
   company: Company | null;
@@ -40,12 +40,12 @@ interface EditCompanyModalProps {
 
 type status = "active" | "inactive";
 
-export function EditCompanyModal({
+export function AdminEditCompanyModal({
   isOpen,
   onClose,
   company,
   onSave,
-}: Readonly<EditCompanyModalProps>) {
+}: Readonly<AdminEditCompanyModalProps>) {
   const [formData, setFormData] = React.useState<Company | null>(null);
   const [status, setStatus] = React.useState<status>(
     (formData?.status as status) || "active",
@@ -95,7 +95,7 @@ export function EditCompanyModal({
             <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold tracking-tight">
-                  Edit Company Details
+                  Edit Company Details (Admin)
                 </h2>
                 <p className="text-sm text-black/40 dark:text-white/40">
                   Update information for {company?.name}
@@ -190,6 +190,20 @@ export function EditCompanyModal({
                     className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                     min="0"
                     step="0.01"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
+                    <Calendar className="w-3 h-3" /> Joining Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.joiningDate}
+                    onChange={(e) =>
+                      handleChange("joiningDate", e.target.value)
+                    }
+                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
                   />
                 </div>
 

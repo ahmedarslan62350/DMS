@@ -2,12 +2,14 @@ import mongoose, { Schema, Document, Types } from "mongoose";
 import { auditPlugin } from "../plugins/Audit.plugin";
 
 export interface CompanyDocument extends Document {
+  intId: number;
   companyName: string;
   joiningDate: Date;
   dialerLink?: string;
   password?: string;
   noOfServers: number;
   serverCharges: number;
+  paidAmount: number;
   renewalDate: Date;
   status: "active" | "inactive";
   comment?: string;
@@ -21,6 +23,11 @@ export interface CompanyDocument extends Document {
 
 const CompanySchema = new Schema<CompanyDocument>(
   {
+    intId: {
+      type: Number,
+      required: true,
+      unique: true,
+    },
     companyName: {
       type: String,
       required: true,
@@ -51,6 +58,12 @@ const CompanySchema = new Schema<CompanyDocument>(
     serverCharges: {
       type: Number,
       required: true,
+      min: 0,
+    },
+
+    paidAmount: {
+      type: Number,
+      default: 0,
       min: 0,
     },
 
