@@ -236,11 +236,11 @@ export function CompanyTable({
   const rowAccentClass = (renewalStatus: string) => {
     switch (renewalStatus) {
       case "Passed":
-        return "border-l-2 border-l-destructive bg-destructive/[0.03] hover:bg-destructive/[0.06]";
+        return "border-l-2 border-l-destructive bg-destructive/[0.15] hover:bg-destructive/[0.3]";
       case "Urgent":
-        return "border-l-2 border-l-amber-500 bg-amber-500/[0.04] hover:bg-amber-500/[0.08]";
+        return "border-l-2 border-l-amber-500 bg-amber-500/[0.15] hover:bg-amber-500/[0.3]";
       case "Pending":
-        return "border-l-2 border-l-blue-500 bg-blue-500/[0.03] hover:bg-blue-500/[0.06]";
+        return "border-l-2 border-l-blue-500 bg-blue-500/[0.15] hover:bg-blue-500/[0.4]";
       default:
         return "border-l-2 border-l-transparent";
     }
