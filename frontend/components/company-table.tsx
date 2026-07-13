@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Edit2, ExternalLink, Loader2, Building2 } from "lucide-react";
+import { Copy, Edit2, ExternalLink, Loader2, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanies } from "@/hooks/useQueries";
 import { Button } from "./ui/button";
@@ -421,7 +421,24 @@ export function CompanyTable({
                   columnId="password"
                   onFieldClick={onFieldClick}
                 >
-                  <span className="font-mono">{company.password}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono">{company.password}</span>
+                    {company.password ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void navigator.clipboard.writeText(company.password).catch(
+                            (error) => console.error("Copy failed:", error),
+                          );
+                        }}
+                        className="text-muted-foreground transition-colors hover:text-foreground"
+                        aria-label={`Copy password for ${company.name}`}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    ) : null}
+                  </div>
                 </LoggableCell>
                 <LoggableCell
                   companyId={company.id}
