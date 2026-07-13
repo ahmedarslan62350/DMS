@@ -5,6 +5,31 @@ import { Copy, Edit2, ExternalLink, Loader2, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCompanies } from "@/hooks/useQueries";
 import { Button } from "./ui/button";
+
+async function copyTextToClipboard(text: string) {
+  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+
+  if (typeof document === "undefined") {
+    throw new TypeError("Clipboard API not available.");
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "absolute";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const successful = document.execCommand("copy");
+  textarea.remove();
+
+  if (!successful) {
+    throw new Error("Fallback copy failed.");
+  }
+}
 import {
   Select,
   SelectContent,
