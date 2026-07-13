@@ -428,9 +428,13 @@ export function CompanyTable({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          void navigator.clipboard.writeText(company.password).catch(
-                            (error) => console.error("Copy failed:", error),
-                          );
+                          if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+                            void navigator.clipboard.writeText(company.password).catch(
+                              (error) => console.error("Copy failed:", error),
+                            );
+                          } else {
+                            console.warn("Clipboard API not available.");
+                          }
                         }}
                         className="text-muted-foreground transition-colors hover:text-foreground"
                         aria-label={`Copy password for ${company.name}`}
