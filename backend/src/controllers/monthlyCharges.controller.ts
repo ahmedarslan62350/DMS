@@ -2,20 +2,68 @@ import { Request, Response } from "express";
 import { MonthlyCharges } from "../models/MonthlyCharges.model";
 import { Company } from "../models/Company.model";
 
-// Helper function to get or create monthly charges record
-export const getOrCreateMonthlyCharges = async (year: number, month: number) => {
-  const monthStr = `${year}-${String(month).padStart(2, "0")}`;
+const monthKey = (year: number, month: number) =>
+  `${year}-${String(month).padStart(2, "0")}`;
+
+const buildPaymentsFromCompanies = (
+  companies: Array<{
+    _id: any;
+    companyName: string;
+    serverCharges: number;
+    paidAmount?: number;
+  }>,
+  forcePaidZero = false,
+) => {
+  let totalCharges = 0;
+  let totalPaid = 0;
+  let totalPending = 0;
+
+  const companyPayments = companies.map((company) => {
+    const charges = company.serverCharges || 0;
+    const paid = forcePaidZero ? 0 : company.paidAmount || 0;
+    const pending = charges - paid;
+
+    totalCharges += charges;
+    totalPaid += paid;
+    totalPending += pending;
+
+    return {
+      companyId: company._id,
+      companyName: company.companyName,
+      charges,
+      paid,
+      pending,
+    };
+  });
+
+  return { companyPayments, totalCharges, totalPaid, totalPending };
+};
+
+/** Start a fresh billing month: reset all company paidAmount and seed all active companies at paid=0 */
+export const initializeNewMonth = async (year: number, month: number) => {
+  const monthStr = monthKey(year, month);
+
+  await Company.updateMany({}, { $set: { paidAmount: 0 } });
+
+  const activeCompanies = await Company.find({ status: "active" });
+  const totals = buildPaymentsFromCompanies(activeCompanies, true);
+
   let monthlyCharges = await MonthlyCharges.findOne({ month: monthStr });
 
-  if (!monthlyCharges) {
+  if (monthlyCharges) {
+    monthlyCharges.year = year;
+    monthlyCharges.monthNumber = month;
+    monthlyCharges.totalCharges = totals.totalCharges;
+    monthlyCharges.totalPaid = totals.totalPaid;
+    monthlyCharges.totalPending = totals.totalPending;
+    monthlyCharges.companyPayments = totals.companyPayments as any;
+    await monthlyCharges.save();
+  } else {
     monthlyCharges = new MonthlyCharges({
       month: monthStr,
       year,
       monthNumber: month,
-      totalCharges: 0,
-      totalPaid: 0,
-      totalPending: 0,
-      companyPayments: [],
+      ...totals,
     });
     await monthlyCharges.save();
   }
@@ -23,42 +71,104 @@ export const getOrCreateMonthlyCharges = async (year: number, month: number) => 
   return monthlyCharges;
 };
 
-// Recalculate all monthly totals from scratch for a given month
-export const recalculateMonthlyCharges = async (year: number, month: number) => {
-  const monthlyCharges = await getOrCreateMonthlyCharges(year, month);
+/**
+ * Get month record, or create a fresh one (paid reset) if it does not exist yet.
+ * Optionally preserve paidAmount for one company (e.g. the one just updated).
+ */
+export const getOrCreateMonthlyCharges = async (
+  year: number,
+  month: number,
+  options?: { preservePaidForCompanyId?: any },
+) => {
+  const monthStr = monthKey(year, month);
+  let monthlyCharges = await MonthlyCharges.findOne({ month: monthStr });
 
-  // Get all active companies
+  if (monthlyCharges) {
+    return monthlyCharges;
+  }
+
+  const preserveId = options?.preservePaidForCompanyId
+    ? options.preservePaidForCompanyId.toString()
+    : null;
+
+  if (preserveId) {
+    await Company.updateMany(
+      { _id: { $ne: preserveId } },
+      { $set: { paidAmount: 0 } },
+    );
+  } else {
+    await Company.updateMany({}, { $set: { paidAmount: 0 } });
+  }
+
   const activeCompanies = await Company.find({ status: "active" });
+  const totals = buildPaymentsFromCompanies(activeCompanies, false);
 
-  // Reset totals
-  monthlyCharges.totalCharges = 0;
-  monthlyCharges.totalPaid = 0;
-  monthlyCharges.totalPending = 0;
-  monthlyCharges.companyPayments = [];
+  monthlyCharges = new MonthlyCharges({
+    month: monthStr,
+    year,
+    monthNumber: month,
+    ...totals,
+  });
+  await monthlyCharges.save();
 
-  // Add all active companies
+  return monthlyCharges;
+};
+
+/** Add any active companies missing from this month's snapshot (as unpaid) */
+export const ensureMonthComplete = async (year: number, month: number) => {
+  const monthlyCharges = await getOrCreateMonthlyCharges(year, month);
+  const activeCompanies = await Company.find({ status: "active" });
+  const existingIds = new Set(
+    monthlyCharges.companyPayments.map((p) => p.companyId.toString()),
+  );
+
+  let changed = false;
+
   for (const company of activeCompanies) {
-    const paidAmount = company.paidAmount || 0;
-    const pendingAmount = company.serverCharges - paidAmount;
+    if (existingIds.has(company._id.toString())) continue;
 
-    monthlyCharges.totalCharges += company.serverCharges;
-    monthlyCharges.totalPaid += paidAmount;
-    monthlyCharges.totalPending += pendingAmount;
+    // Missing from this month → treat as unpaid for the current billing cycle
+    if ((company.paidAmount || 0) !== 0) {
+      company.paidAmount = 0;
+      await company.save();
+    }
 
+    const charges = company.serverCharges || 0;
     monthlyCharges.companyPayments.push({
       companyId: company._id,
       companyName: company.companyName,
-      charges: company.serverCharges,
-      paid: paidAmount,
-      pending: pendingAmount,
+      charges,
+      paid: 0,
+      pending: charges,
     });
+    monthlyCharges.totalCharges += charges;
+    monthlyCharges.totalPending += charges;
+    changed = true;
   }
+
+  if (changed) {
+    await monthlyCharges.save();
+  }
+
+  return monthlyCharges;
+};
+
+/** Recalculate month totals from current company paidAmount / charges (mid-month sync) */
+export const recalculateMonthlyCharges = async (year: number, month: number) => {
+  const monthlyCharges = await getOrCreateMonthlyCharges(year, month);
+  const activeCompanies = await Company.find({ status: "active" });
+  const totals = buildPaymentsFromCompanies(activeCompanies, false);
+
+  monthlyCharges.totalCharges = totals.totalCharges;
+  monthlyCharges.totalPaid = totals.totalPaid;
+  monthlyCharges.totalPending = totals.totalPending;
+  monthlyCharges.companyPayments = totals.companyPayments as any;
 
   await monthlyCharges.save();
   return monthlyCharges;
 };
 
-// Update monthly totals when company paid amount changes
+/** Update monthly totals when a company's paid amount changes */
 export const updateMonthlyCharges = async (
   companyId: any,
   oldPaidAmount: number,
@@ -69,25 +179,31 @@ export const updateMonthlyCharges = async (
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+  const monthStr = monthKey(year, month);
 
-  const monthlyCharges = await getOrCreateMonthlyCharges(year, month);
+  let monthlyCharges = await MonthlyCharges.findOne({ month: monthStr });
 
-  // Find if company already exists in this month's payments
+  if (!monthlyCharges) {
+    // New calendar month: reset everyone else's paid, keep this company's payment
+    monthlyCharges = await getOrCreateMonthlyCharges(year, month, {
+      preservePaidForCompanyId: companyId,
+    });
+  } else {
+    monthlyCharges = await ensureMonthComplete(year, month);
+  }
+
   const existingPaymentIndex = monthlyCharges.companyPayments.findIndex(
     (payment) => payment.companyId.toString() === companyId.toString(),
   );
 
-  const paidDifference = newPaidAmount - oldPaidAmount;
   const pendingAmount = serverCharges - newPaidAmount;
 
   if (existingPaymentIndex >= 0) {
-    // Update existing company payment
     const oldPayment = monthlyCharges.companyPayments[existingPaymentIndex];
-    
-    // Recalculate totals
+
     monthlyCharges.totalPaid -= oldPayment.paid;
     monthlyCharges.totalPaid += newPaidAmount;
-    
+
     monthlyCharges.totalPending -= oldPayment.pending;
     monthlyCharges.totalPending += pendingAmount;
 
@@ -99,7 +215,6 @@ export const updateMonthlyCharges = async (
       pending: pendingAmount,
     };
   } else {
-    // Add new company payment
     monthlyCharges.totalPaid += newPaidAmount;
     monthlyCharges.totalPending += pendingAmount;
     monthlyCharges.companyPayments.push({
@@ -111,7 +226,6 @@ export const updateMonthlyCharges = async (
     });
   }
 
-  // Recalculate total charges
   monthlyCharges.totalCharges = monthlyCharges.companyPayments.reduce(
     (sum, payment) => sum + payment.charges,
     0,
@@ -121,7 +235,7 @@ export const updateMonthlyCharges = async (
   return monthlyCharges;
 };
 
-// Remove company from monthly totals (when deleted or becomes inactive)
+/** Remove company from monthly totals (when deleted or becomes inactive) */
 export const removeCompanyFromMonthlyCharges = async (companyId: any) => {
   const now = new Date();
   const year = now.getFullYear();
@@ -151,33 +265,30 @@ export const removeCompanyFromMonthlyCharges = async (companyId: any) => {
   }
 };
 
-// Get current month's charges summary
+/** Get current month's charges summary */
 export const getCurrentMonthCharges = async (req: Request, res: Response) => {
   try {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
+    const monthStr = monthKey(year, month);
 
-    const monthlyCharges = await getOrCreateMonthlyCharges(year, month);
+    const existing = await MonthlyCharges.findOne({ month: monthStr });
 
-    // If this is a newly created month (no company payments yet), recalculate from all active companies
-    if (monthlyCharges.companyPayments.length === 0) {
-      await recalculateMonthlyCharges(year, month);
-      // Fetch the updated data
-      const updatedCharges = await MonthlyCharges.findOne({
-        year,
-        monthNumber: month,
-      });
-      return res.json(updatedCharges);
+    // First request of a new calendar month → reset paid amounts and seed all companies
+    if (!existing) {
+      const monthlyCharges = await initializeNewMonth(year, month);
+      return res.json(monthlyCharges);
     }
 
+    const monthlyCharges = await ensureMonthComplete(year, month);
     res.json(monthlyCharges);
   } catch (error) {
     res.status(500).json({ error });
   }
 };
 
-// Get charges for a specific month
+/** Get charges for a specific month */
 export const getMonthCharges = async (req: Request, res: Response) => {
   try {
     const { year, month } = req.params;
@@ -197,7 +308,7 @@ export const getMonthCharges = async (req: Request, res: Response) => {
   }
 };
 
-// Get all monthly charges
+/** Get all monthly charges */
 export const getAllMonthlyCharges = async (req: Request, res: Response) => {
   try {
     const monthlyCharges = await MonthlyCharges.find().sort({

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch ./main.ts",
     "build": "tsc & npx fix-esm-import-path dist",
-    "start":"node ./dist/main.js"
+    "start": "node ./dist/main.js",
+    "fix:month": "npx tsx src/scripts/fixCurrentMonthCharges.ts"
   },
   "keywords": [],
   "author": "",
