@@ -20,7 +20,7 @@ import monthlyChargesRoutes from "./routes/monthlyCharges.routes";
 const app = express();
 
 /* ------------------------------------------------------------------ */
-/* Networking                                                          */
+/* Networking                                                         */
 /* ------------------------------------------------------------------ */
 
 const defaultOrigins = [
@@ -49,25 +49,7 @@ app.use(
 app.set("trust proxy", true);
 
 /* ------------------------------------------------------------------ */
-/* Cross-cutting middleware                                            */
-/* ------------------------------------------------------------------ */
-
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
-  standardHeaders: true,
-  legacyHeaders: false,
-  // Status polling must never burn the request budget.
-  skip: (req) => req.path === "/api/health",
-});
-
-app.use(limiter);
-app.use(ipWhitelist);
-app.use(helmet());
-app.use(express.json({ limit: "1mb" }));
-
-/* ------------------------------------------------------------------ */
-/* Health — always available, even with no database                    */
+/* Health — bypasses IP whitelist and rate limits so monitors work    */
 /* ------------------------------------------------------------------ */
 
 app.get("/api/health", (_req, res) => {
@@ -83,13 +65,26 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
-/**
- * Fail fast when the data layer is gone.
- *
- * Previously every query hung until mongoose's server-selection timeout, so
- * the UI reported a network error instead of the real cause. A 503 with a
- * plain message tells the operator exactly what is wrong.
- */
+/* ------------------------------------------------------------------ */
+/* Cross-cutting middleware                                           */
+/* ------------------------------------------------------------------ */
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(limiter);
+app.use(ipWhitelist);
+app.use(helmet());
+app.use(express.json({ limit: "1mb" }));
+
+/* ------------------------------------------------------------------ */
+/* Database Check Middleware                                          */
+/* ------------------------------------------------------------------ */
+
 app.use((req, res, next) => {
   if (mongoose.connection.readyState === 1) return next();
 
@@ -100,7 +95,7 @@ app.use((req, res, next) => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Routes                                                              */
+/* Routes                                                             */
 /* ------------------------------------------------------------------ */
 
 app.use("/api/auth", authRoutes);
@@ -119,7 +114,7 @@ app.get("/", authenticate, authorize("company.read"), (_req, res) => {
 });
 
 /* ------------------------------------------------------------------ */
-/* Fallbacks                                                           */
+/* Fallbacks                                                          */
 /* ------------------------------------------------------------------ */
 
 app.use((req, res) => {
