@@ -1,120 +1,232 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import { Sidebar } from '@/components/sidebar';
-import { Navbar } from '@/components/navbar';
-import { motion } from 'motion/react';
-import { 
-  Globe, 
-  Shield, 
-  Mail, 
-  Bell, 
-  Database, 
-  Zap,
-  Save
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import { RefreshCw } from "lucide-react";
 
-export default function SystemSettingsPage() {
+import { AppShell } from "@/components/app-shell";
+import { ErrorState } from "@/components/shared/error-state";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useHealth } from "@/hooks/useQueries";
+import { cn } from "@/lib/utils";
+
+const EM_DASH = "—";
+
+const MONTHS = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/**
+ * Timestamps are formatted from their ISO parts rather than through
+ * `toLocaleString`: the server pass runs in UTC and the browser may not, and a
+ * locale-dependent string would desync hydration.
+ */
+function formatTimestamp(raw: unknown): string {
+  if (typeof raw !== "string" || !raw) return EM_DASH;
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return EM_DASH;
+
+  const [datePart, timePart = ""] = parsed.toISOString().split("T");
+  const [year, month, day] = datePart.split("-");
+
+  return `${day} ${MONTHS[Number(month) - 1] ?? month} ${year}, ${timePart.slice(0, 8)} UTC`;
+}
+
+/** `11232` → `3h 7m 12s`, trimming empty leading units. */
+function humaniseUptime(raw: unknown): string {
+  const seconds = Number(raw);
+
+  if (!Number.isFinite(seconds) || seconds < 0) return EM_DASH;
+
+  const whole = Math.floor(seconds);
+  const days = Math.floor(whole / 86400);
+  const hours = Math.floor((whole % 86400) / 3600);
+  const minutes = Math.floor((whole % 3600) / 60);
+  const secs = whole % 60;
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+
+  // Below a minute the seconds are the only meaningful figure.
+  if (parts.length === 0) return `${secs}s`;
+  if (days === 0) parts.push(`${secs}s`);
+
+  return parts.join(" ");
+}
+
+function capitalise(raw: unknown): string {
+  if (typeof raw !== "string" || !raw) return EM_DASH;
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+}
+
+function text(value: unknown): string {
+  if (value === null || value === undefined) return EM_DASH;
+
+  const asString = String(value).trim();
+  if (!asString || asString === "null" || asString === "undefined") {
+    return EM_DASH;
+  }
+
+  return asString;
+}
+
+function HealthRow({
+  label,
+  children,
+  last = false,
+}: Readonly<{
+  label: string;
+  children: React.ReactNode;
+  last?: boolean;
+}>) {
   return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 flex flex-col min-w-0">
-        <Navbar />
-        <div className="flex-1 p-8 max-w-4xl mx-auto w-full">
-          <header className="flex items-center justify-between mb-12">
-            <div>
-              <h1 className="text-4xl font-bold tracking-tight mb-2">System Settings</h1>
-              <p className="text-black/40 dark:text-white/40 font-medium">
-                Global configuration and system-wide preferences.
-              </p>
-            </div>
-            <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black font-bold hover:scale-[1.02] active:scale-[0.98] transition-all">
-              <Save className="w-5 h-5" /> Save Changes
-            </button>
-          </header>
-
-          <div className="space-y-8">
-            {/* General Settings */}
-            <section className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-3xl p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
-                <Globe className="w-5 h-5 text-black/40 dark:text-white/40" />
-                <h2 className="text-lg font-bold">General Configuration</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40">Portal Name</label>
-                  <input type="text" defaultValue="DialerFlow Portal" className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40">Support Email</label>
-                  <input type="email" defaultValue="support@dialerflow.com" className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all" />
-                </div>
-              </div>
-            </section>
-
-            {/* Security Settings */}
-            <section className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-3xl p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
-                <Shield className="w-5 h-5 text-black/40 dark:text-white/40" />
-                <h2 className="text-lg font-bold">Security & Access</h2>
-              </div>
-              <div className="space-y-6">
-                {[
-                  { label: 'Two-Factor Authentication', desc: 'Require 2FA for all administrative accounts', enabled: true },
-                  { label: 'Session Timeout', desc: 'Automatically log out inactive users after 30 minutes', enabled: true },
-                  { label: 'IP Whitelisting', desc: 'Restrict admin access to specific IP ranges', enabled: false },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between p-4 rounded-2xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
-                    <div>
-                      <p className="text-sm font-bold">{item.label}</p>
-                      <p className="text-xs text-black/40 dark:text-white/40">{item.desc}</p>
-                    </div>
-                    <button className={cn(
-                      "w-12 h-6 rounded-full transition-all relative inline-flex items-center px-1",
-                      item.enabled ? "bg-black dark:bg-white" : "bg-black/10 dark:bg-white/10"
-                    )}>
-                      <motion.div
-                        animate={{ x: item.enabled ? 24 : 0 }}
-                        className={cn(
-                          "w-4 h-4 rounded-full shadow-sm",
-                          item.enabled ? "bg-white dark:bg-black" : "bg-white"
-                        )}
-                      />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* Infrastructure */}
-            <section className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-3xl p-8 shadow-sm">
-              <div className="flex items-center gap-3 mb-8">
-                <Database className="w-5 h-5 text-black/40 dark:text-white/40" />
-                <h2 className="text-lg font-bold">Infrastructure</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Zap className="w-4 h-4 text-emerald-500" />
-                    <span className="text-sm font-bold uppercase tracking-wider">Primary Database</span>
-                  </div>
-                  <p className="text-xs text-black/40 dark:text-white/40">Status: Connected</p>
-                  <p className="text-xs text-black/40 dark:text-white/40">Region: us-east-1</p>
-                </div>
-                <div className="p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.01] dark:bg-white/[0.01]">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Bell className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm font-bold uppercase tracking-wider">Notification Service</span>
-                  </div>
-                  <p className="text-xs text-black/40 dark:text-white/40">Status: Active</p>
-                  <p className="text-xs text-black/40 dark:text-white/40">Provider: Amazon SES</p>
-                </div>
-              </div>
-            </section>
-          </div>
-        </div>
-      </main>
+    <div
+      className={cn(
+        "grid grid-cols-1 gap-x-6 gap-y-1.5 px-4 py-4 sm:grid-cols-[13rem_minmax(0,1fr)]",
+        !last && "border-b border-border",
+      )}
+    >
+      <dt className="micro-label sm:pt-0.5">{label}</dt>
+      <dd className="min-w-0 text-foreground">{children}</dd>
     </div>
+  );
+}
+
+export default function SystemStatusPage() {
+  const { health, isLoading, isError, isFetching, dataUpdatedAt, refetch } =
+    useHealth();
+
+  const database = health?.database;
+  const isOperational = health?.status === "ok";
+  const isDegraded = health?.status === "degraded";
+  const databaseConnected = database?.connected === true;
+
+  return (
+    <AppShell
+      title="System status"
+      description="Live read-only view of the API and its database connection. Values are polled every 30 seconds."
+      actions={
+        <Button
+          variant="outline"
+          onClick={() => void refetch()}
+          disabled={isFetching}
+        >
+          <RefreshCw
+            className={cn("size-4", isFetching && "animate-spin")}
+            aria-hidden="true"
+          />
+          {isFetching ? "Refreshing…" : "Refresh"}
+        </Button>
+      }
+    >
+      <div className="panel overflow-hidden rounded-md">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-border px-4 py-3">
+          <p className="micro-label">Service health</p>
+          <p className="tnum text-[11px] text-muted-foreground">
+            {dataUpdatedAt
+              ? `Last checked ${formatTimestamp(new Date(dataUpdatedAt).toISOString())}`
+              : "Awaiting first reading"}
+          </p>
+        </div>
+
+        {isError && !health ? (
+          <ErrorState
+            title="Couldn't reach the health endpoint"
+            description="The API did not return a health report. Check that the backend is running and try again."
+            onRetry={() => void refetch()}
+          />
+        ) : isLoading && !health ? (
+          <dl>
+            {[0, 1, 2, 3, 4, 5].map((row) => (
+              <div
+                key={row}
+                className="grid grid-cols-1 gap-x-6 gap-y-2 border-b border-border px-4 py-4 last:border-b-0 sm:grid-cols-[13rem_minmax(0,1fr)]"
+              >
+                <Skeleton className="h-2.5 w-24" />
+                <Skeleton className="h-3.5 w-40" />
+              </div>
+            ))}
+          </dl>
+        ) : (
+          <dl>
+            <HealthRow label="API status">
+              <Badge
+                variant={
+                  isOperational
+                    ? "success"
+                    : isDegraded
+                      ? "warning"
+                      : "neutral"
+                }
+              >
+                {isOperational
+                  ? "Operational"
+                  : isDegraded
+                    ? "Degraded"
+                    : text(health?.status)}
+              </Badge>
+            </HealthRow>
+
+            <HealthRow label="Database connection">
+              <Badge variant={databaseConnected ? "success" : "destructive"}>
+                {databaseConnected ? "Connected" : "Disconnected"}
+              </Badge>
+            </HealthRow>
+
+            <HealthRow label="Database state">
+              <span className="body">{text(database?.state)}</span>
+            </HealthRow>
+
+            <HealthRow label="Database name">
+              <span className="mono-id text-foreground">
+                {text(database?.name)}
+              </span>
+            </HealthRow>
+
+            <HealthRow label="Uptime">
+              <span className="tnum font-medium text-foreground">
+                {humaniseUptime(health?.uptimeSeconds)}
+              </span>
+              {Number.isFinite(Number(health?.uptimeSeconds)) && (
+                <span className="tnum ml-2 text-[11px] text-muted-foreground">
+                  · {Math.floor(Number(health?.uptimeSeconds))} s
+                </span>
+              )}
+            </HealthRow>
+
+            <HealthRow label="Version">
+              <span className="mono-id text-foreground">
+                {text(health?.version)}
+              </span>
+            </HealthRow>
+
+            <HealthRow label="Environment">
+              <span className="body">{capitalise(health?.environment)}</span>
+            </HealthRow>
+
+            <HealthRow label="Reported at" last>
+              <span className="tnum text-muted-foreground">
+                {formatTimestamp(health?.timestamp)}
+              </span>
+            </HealthRow>
+          </dl>
+        )}
+      </div>
+    </AppShell>
   );
 }

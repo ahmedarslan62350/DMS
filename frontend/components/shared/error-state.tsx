@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "motion/react";
 import { AlertTriangle, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,29 +19,26 @@ export function ErrorState({
   className,
 }: Readonly<ErrorStateProps>) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.25 }}
+    <div
+      role="alert"
       className={cn(
-        "flex flex-col items-center justify-center gap-3 px-6 py-16 text-center",
+        "flex flex-col items-start gap-3 px-5 py-14 sm:px-6",
         className,
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10">
-        <AlertTriangle className="h-6 w-6 text-destructive" />
-      </div>
+      <span className="flex size-9 items-center justify-center rounded-md border border-destructive/30 bg-destructive/8">
+        <AlertTriangle className="size-4 text-destructive" />
+      </span>
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="max-w-sm text-sm text-muted-foreground">
-          {description}
-        </p>
+        <p className="heading-3 text-foreground">{title}</p>
+        <p className="body max-w-md text-muted-foreground">{description}</p>
       </div>
       {onRetry && (
-        <Button variant="outline" size="sm" className="mt-2" onClick={onRetry}>
-          <RotateCw className="h-3.5 w-3.5" /> Try again
+        <Button variant="outline" size="sm" className="mt-1" onClick={onRetry}>
+          <RotateCw className="size-3.5" />
+          Try again
         </Button>
       )}
-    </motion.div>
+    </div>
   );
 }

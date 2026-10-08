@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { Clock, User, ArrowLeft, ArrowRight, History } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, ArrowRight, History } from "lucide-react";
+import { Badge, BadgeDot } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -16,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatAuditValue, formatDateTime } from "@/lib/helpers";
 
 interface Log {
   _id: string;
@@ -44,12 +45,6 @@ interface FieldLogsModalProps {
   onRetry?: () => void;
 }
 
-function formatLogValue(value: unknown) {
-  if (value === null || value === undefined || value === "null") return "—";
-  if (typeof value === "object") return JSON.stringify(value);
-  return String(value);
-}
-
 const actionVariant = (action: Log["action"]) => {
   switch (action) {
     case "create":
@@ -61,6 +56,11 @@ const actionVariant = (action: Log["action"]) => {
   }
 };
 
+/**
+ * A field's change history, presented as a flat ledger: one hairline row per
+ * revision, with the before/after values set in tabular type so they line up
+ * down the column.
+ */
 export function FieldLogsModal({
   isOpen,
   onClose,
@@ -76,87 +76,78 @@ export function FieldLogsModal({
 }: Readonly<FieldLogsModalProps>) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 p-0">
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <History className="h-5 w-5 text-muted-foreground" />
-            Field history: {fieldName}
-          </DialogTitle>
+          <DialogTitle>Change history</DialogTitle>
           <DialogDescription>
-            {isLoading
-              ? "Loading change history…"
-              : `Showing ${logs.length} of ${total} log${total === 1 ? "" : "s"} (max 7 per page)`}
+            {fieldName}
+            {!isLoading && !isError && (
+              <>
+                {" · "}
+                {total} revision{total === 1 ? "" : "s"} recorded
+              </>
+            )}
           </DialogDescription>
         </DialogHeader>
 
-        <DialogBody className="space-y-3">
+        <DialogBody className="p-0">
           {isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-3 p-5">
               {Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+                <Skeleton key={i} className="h-20 w-full" />
               ))}
             </div>
           ) : isError ? (
             <ErrorState
               title="Couldn't load field history"
-              description="There was a problem fetching logs for this field."
+              description="There was a problem fetching revisions for this field."
               onRetry={onRetry}
             />
           ) : logs.length === 0 ? (
             <EmptyState
               icon={History}
               title="No changes recorded"
-              description={`No audit logs found for ${fieldName} on this company yet.`}
+              description={`Nothing has been changed for ${fieldName} yet.`}
             />
           ) : (
-            logs.map((log) => (
-              <div
-                key={log._id}
-                className="rounded-xl border border-border bg-muted/30 p-4"
-              >
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
+            <ul>
+              {logs.map((log) => (
+                <li
+                  key={log._id}
+                  className="border-b border-border px-5 py-4 last:border-b-0"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <Badge variant={actionVariant(log.action)}>
+                      <BadgeDot />
                       {log.action}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {log.field}
+                    <span className="tnum text-[11px] text-muted-foreground">
+                      {formatDateTime(log.createdAt)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {new Date(log.createdAt).toLocaleString()}
-                  </div>
-                </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <div className="rounded-lg border border-border bg-background/60 p-2.5">
-                    <p className="mb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                      Before
-                    </p>
-                    <p className="font-mono text-xs break-all text-muted-foreground line-through">
-                      {formatLogValue(log.oldValue)}
-                    </p>
+                  <div className="mt-3 grid gap-px overflow-hidden rounded-[3px] border border-border bg-border sm:grid-cols-2">
+                    <div className="bg-surface px-3 py-2.5">
+                      <p className="micro-label">Before</p>
+                      <p className="mono-id mt-1.5 break-all text-muted-foreground line-through">
+                        {formatAuditValue(log.oldValue)}
+                      </p>
+                    </div>
+                    <div className="bg-surface px-3 py-2.5">
+                      <p className="micro-label">After</p>
+                      <p className="mono-id mt-1.5 break-all font-medium text-foreground">
+                        {formatAuditValue(log.newValue)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-lg border border-border bg-background/60 p-2.5">
-                    <p className="mb-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                      After
-                    </p>
-                    <p className="font-mono text-xs font-medium break-all text-foreground">
-                      {formatLogValue(log.newValue)}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
-                  <User className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">
+                  <p className="mt-2.5 truncate text-[11px] text-muted-foreground">
                     {log.changedBy?.name ?? "Unknown"}
                     {log.changedBy?.email ? ` · ${log.changedBy.email}` : ""}
-                  </span>
-                </div>
-              </div>
-            ))
+                  </p>
+                </li>
+              ))}
+            </ul>
           )}
         </DialogBody>
 
@@ -168,10 +159,10 @@ export function FieldLogsModal({
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="size-3.5" />
               Previous
             </Button>
-            <span className="text-sm text-muted-foreground">
+            <span className="tnum text-[12px] text-muted-foreground">
               Page {page} of {pages}
             </span>
             <Button
@@ -181,7 +172,7 @@ export function FieldLogsModal({
               disabled={page >= pages}
             >
               Next
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="size-3.5" />
             </Button>
           </DialogFooter>
         )}

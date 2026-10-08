@@ -46,9 +46,11 @@ export const getUsers = async (req: Request, res: Response) => {
             {
               model: Permission,
               path: "permissions",
-              select: "name -_id",
+              // `Permission` keys on `key`, not `name` — asking for `name`
+              // returned an array of nulls for every user's role.
+              select: "key -_id",
               transform: (doc) => {
-                return doc ? doc.get("name") : null;
+                return doc ? doc.get("key") : null;
               },
             },
           ],
@@ -74,9 +76,11 @@ export const getUserById = async (req: Request, res: Response) => {
             {
               model: Permission,
               path: "permissions",
-              select: "name -_id",
+              // `Permission` keys on `key`, not `name` — asking for `name`
+              // returned an array of nulls for every user's role.
+              select: "key -_id",
               transform: (doc) => {
-                return doc ? doc.get("name") : null;
+                return doc ? doc.get("key") : null;
               },
             },
           ],
@@ -112,9 +116,11 @@ export const updateUser = async (req: any, res: Response) => {
             {
               model: Permission,
               path: "permissions",
-              select: "name -_id",
+              // `Permission` keys on `key`, not `name` — asking for `name`
+              // returned an array of nulls for every user's role.
+              select: "key -_id",
               transform: (doc) => {
-                return doc ? doc.get("name") : null;
+                return doc ? doc.get("key") : null;
               },
             },
           ],

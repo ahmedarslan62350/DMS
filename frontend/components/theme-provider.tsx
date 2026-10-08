@@ -1,60 +1,78 @@
-'use client';
+"use client";
 
-import * as React from 'react';
+import * as React from "react";
 
-type Theme = 'dark' | 'light';
+type Theme = "dark" | "light";
 
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
 }
 
-const ThemeContext = React.createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = React.createContext<ThemeContextType | undefined>(
+  undefined,
+);
+
+function applyTheme(theme: Theme) {
+  const root = window.document.documentElement;
+  root.classList.remove("light", "dark");
+  root.classList.add(theme);
+  root.style.colorScheme = theme;
+  localStorage.setItem("theme", theme);
+}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = React.useState<Theme>('dark');
-  const [mounted, setMounted] = React.useState(false);
+  // The pre-paint script in the document head has already resolved and applied
+  // the real theme, so starting at "light" can never flash and never mismatches.
+  const [theme, setThemeState] = React.useState<Theme>("light");
 
   React.useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
-      setTheme('light');
-    }
-    setMounted(true);
+    const current: Theme = document.documentElement.classList.contains("dark")
+      ? "dark"
+      : "light";
+    setThemeState(current);
   }, []);
 
+  // Keep multiple tabs in agreement.
   React.useEffect(() => {
-    if (!mounted) return;
-    
-    const root = window.document.documentElement;
-    root.classList.remove('light', 'dark');
-    root.classList.add(theme);
-    localStorage.setItem('theme', theme);
-    
-    // Also update body to ensure it's consistent
-    document.body.classList.remove('light', 'dark');
-    document.body.classList.add(theme);
-  }, [theme, mounted]);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== "theme") return;
+      const next: Theme = event.newValue === "dark" ? "dark" : "light";
+      applyTheme(next);
+      setThemeState(next);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  const setTheme = React.useCallback((next: Theme) => {
+    applyTheme(next);
+    setThemeState(next);
+  }, []);
+
+  const toggleTheme = React.useCallback(() => {
+    setThemeState((prev) => {
+      const next: Theme = prev === "dark" ? "light" : "dark";
+      applyTheme(next);
+      return next;
+    });
+  }, []);
+
+  const value = React.useMemo(
+    () => ({ theme, toggleTheme, setTheme }),
+    [theme, toggleTheme, setTheme],
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div className={mounted ? "" : "invisible"}>
-        {children}
-      </div>
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 }
 
 export function useTheme() {
   const context = React.useContext(ThemeContext);
   if (context === undefined) {
-    throw new Error('useTheme must be used within a ThemeProvider');
+    throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
 }

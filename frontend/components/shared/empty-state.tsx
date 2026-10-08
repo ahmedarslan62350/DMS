@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "motion/react";
 import type { LucideIcon } from "lucide-react";
 import { Inbox } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,27 +21,22 @@ export function EmptyState({
   className,
 }: Readonly<EmptyStateProps>) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.25 }}
+    <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 px-6 py-16 text-center",
+        "flex flex-col items-start gap-3 px-5 py-14 sm:px-6",
         className,
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted">
-        <Icon className="h-6 w-6 text-muted-foreground" />
-      </div>
+      <span className="flex size-9 items-center justify-center rounded-md border border-border bg-surface-alt">
+        <Icon className="size-4 text-muted-foreground" />
+      </span>
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="heading-3 text-foreground">{title}</p>
         {description && (
-          <p className="max-w-sm text-sm text-muted-foreground">
-            {description}
-          </p>
+          <p className="body max-w-md text-muted-foreground">{description}</p>
         )}
       </div>
-      {action && <div className="mt-2">{action}</div>}
-    </motion.div>
+      {action && <div className="mt-1">{action}</div>}
+    </div>
   );
 }

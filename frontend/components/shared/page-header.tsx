@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "motion/react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +18,10 @@ interface PageHeaderProps {
   className?: string;
 }
 
+/**
+ * Every heading in this system is left-aligned. Centred titles are reserved
+ * for the standalone sign-in door and nowhere else.
+ */
 export function PageHeader({
   title,
   description,
@@ -27,25 +30,27 @@ export function PageHeader({
   className,
 }: Readonly<PageHeaderProps>) {
   return (
-    <motion.header
-      initial={{ opacity: 0, y: -8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+    <header
       className={cn(
-        "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
+        "flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between",
         className,
       )}
     >
       <div className="min-w-0">
         {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <nav
+            aria-label="Breadcrumb"
+            className="mb-2.5 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground"
+          >
             {breadcrumbs.map((crumb, i) => (
               <React.Fragment key={crumb.label}>
-                {i > 0 && <ChevronRight className="h-3 w-3 shrink-0" />}
+                {i > 0 && (
+                  <ChevronRight className="size-3 shrink-0 opacity-50" />
+                )}
                 {crumb.href ? (
                   <Link
                     href={crumb.href}
-                    className="transition-colors hover:text-foreground"
+                    className="rounded-[2px] transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     {crumb.label}
                   </Link>
@@ -56,19 +61,21 @@ export function PageHeader({
             ))}
           </nav>
         )}
-        <h1 className="truncate text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {title}
-        </h1>
+
+        <h1 className="heading-1 text-foreground sm:text-[1.75rem]">{title}</h1>
+
         {description && (
-          <p className="mt-1 text-sm font-medium text-muted-foreground">
+          <p className="body mt-2 max-w-2xl text-muted-foreground">
             {description}
           </p>
         )}
       </div>
 
       {actions && (
-        <div className="flex shrink-0 items-center gap-2.5">{actions}</div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+          {actions}
+        </div>
       )}
-    </motion.header>
+    </header>
   );
 }

@@ -27,8 +27,10 @@ export const createRole = async (req: any, res: Response) => {
 
 export const getRoles = async (req: Request, res: Response) => {
   try {
+    // `Permission` keys on `key`, not `name` — the previous projection asked
+    // for a field that does not exist and returned permissions with no label.
     const roles = await Role.find()
-      .populate("permissions", "name description")
+      .populate("permissions", "key description")
       .sort({ createdAt: -1 });
 
     res.json(roles);
@@ -42,7 +44,7 @@ export const getRoleById = async (req: Request, res: Response) => {
   try {
     const role = await Role.findById(req.params.id).populate(
       "permissions",
-      "name description"
+      "key description"
     );
 
     if (!role) {
@@ -64,7 +66,7 @@ export const updateRole = async (req: any, res: Response) => {
         new: true,
         userId: req.user.userId,
       }
-    ).populate("permissions", "name");
+    ).populate("permissions", "key description");
 
     if (!role) {
       return res.status(404).json({ message: "Role not found" });

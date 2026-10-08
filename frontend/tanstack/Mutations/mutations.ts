@@ -84,7 +84,8 @@ export class Mutations {
       queryClient,
       mutationFn: (data: { key: string; description: string }) =>
         AdminPermissionApis.createPermission(data),
-      invalidateKeys: [["admin", "roles"]],
+      // Creating a permission must refresh the permission list, not roles.
+      invalidateKeys: [["admin", "permissions"], ["admin", "roles"]],
     });
   }
   static deletePermission(queryClient: QueryClient) {

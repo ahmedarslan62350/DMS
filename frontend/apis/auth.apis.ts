@@ -13,7 +13,13 @@ export class AuthApis {
 
   static async login(data: { email: string; password: string }) {
     const { data: response } = await apiClient.post(`/auth/login`, data);
-    TokenStorage.set(response?.token || "");
+
+    // Only persist a real token — storing "" produced a bogus "authenticated"
+    // state that made every subsequent request 401.
+    if (response?.token) {
+      TokenStorage.set(response.token);
+    }
+
     return response;
   }
 

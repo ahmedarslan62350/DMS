@@ -2,6 +2,7 @@
 
 import { Queries } from "@/tanstack/Queries/queries";
 import { useQuery } from "@tanstack/react-query";
+import type { HealthResponse } from "@/apis/health.api";
 
 export const useCompanies = (page?: number, limit?: number) => {
   const { data, isLoading, isError, refetch } = useQuery(Queries.companies());
@@ -105,6 +106,20 @@ export const useFieldLogs = (
     pages: data?.pages || 1,
     isLoading,
     isError,
+    refetch,
+  };
+};
+
+export const useHealth = () => {
+  const { data, isLoading, isError, refetch, isFetching, dataUpdatedAt } =
+    useQuery(Queries.health());
+
+  return {
+    health: (data as HealthResponse | undefined) ?? null,
+    isLoading,
+    isError,
+    isFetching,
+    dataUpdatedAt,
     refetch,
   };
 };

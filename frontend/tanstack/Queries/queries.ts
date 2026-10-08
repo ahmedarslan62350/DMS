@@ -4,6 +4,7 @@ import { AdminUserApis } from "@/apis/adminUser.apis";
 import { AdminRoleApis } from "@/apis/adminRole.apis";
 import { AdminPermissionApis } from "@/apis/adminPermission.apis";
 import { AuditApis } from "@/apis/auditLogs.api";
+import { HealthApis } from "@/apis/health.api";
 
 export class Queries {
   static currentUser() {
@@ -95,6 +96,14 @@ export class Queries {
       queryKey: ["fieldLogs", entityType, entityId, field, page],
       queryFn: () => AuditApis.getFieldLogs(entityType, entityId, field, page),
       enabled: enabled && !!entityType && !!entityId && !!field,
+    };
+  }
+
+  static health() {
+    return {
+      queryKey: ["health"],
+      queryFn: () => HealthApis.getHealth(),
+      refetchInterval: 30000,
     };
   }
 }

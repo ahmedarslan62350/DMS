@@ -84,7 +84,8 @@ const MonthlyChargesSchema = new Schema<MonthlyChargesDocument>(
   },
 );
 
-MonthlyChargesSchema.index({ month: 1 });
+// `month` is already `unique: true` above, which creates its own index —
+// declaring it again here produced a duplicate-index warning on every boot.
 MonthlyChargesSchema.index({ year: 1, monthNumber: 1 });
 
 export const MonthlyCharges = mongoose.model<MonthlyChargesDocument>(

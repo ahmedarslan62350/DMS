@@ -1,21 +1,29 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  X,
-  Plus,
-  Building2,
-  Link as LinkIcon,
-  Server,
-  DollarSign,
-  Calendar,
-  Activity,
-  File,
-  Lock,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 
-interface Company {
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+
+export interface NewCompanyValues {
   name: string;
   joiningDate: string;
   dialerLink: string;
@@ -32,267 +40,211 @@ interface Company {
 interface AddCompanyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (newCompany: Company) => void;
+  onAdd: (newCompany: NewCompanyValues) => void;
 }
+
+const todayIso = () => new Date().toISOString().split("T")[0];
+
+const emptyCompany = (): NewCompanyValues => ({
+  name: "",
+  joiningDate: todayIso(),
+  dialerLink: "",
+  password: "",
+  servers: 1,
+  charges: 0,
+  paidAmount: 0,
+  renewalDate: "",
+  status: "Active",
+  comment: "",
+  additionalComment: "",
+});
 
 export function AddCompanyModal({
   isOpen,
   onClose,
   onAdd,
 }: Readonly<AddCompanyModalProps>) {
-  const [formData, setFormData] = React.useState<Company>({
-    name: "",
-    joiningDate: new Date().toISOString().split("T")[0],
-    dialerLink: "",
-    password: "",
-    servers: 1,
-    charges: 0,
-    paidAmount: 0,
-    renewalDate: "",
-    status: "Active",
-    comment: "",
-    additionalComment: "",
-  });
+  const [formData, setFormData] = React.useState<NewCompanyValues>(emptyCompany);
 
-  const handleChange = (field: keyof Company, value: any) => {
+  // Start every new entry from a clean slate, including after a cancel.
+  React.useEffect(() => {
+    if (!isOpen) setFormData(emptyCompany());
+  }, [isOpen]);
+
+  const setField = <K extends keyof NewCompanyValues>(
+    field: K,
+    value: NewCompanyValues[K],
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
     onAdd(formData);
     onClose();
-    setFormData({
-      name: "",
-      joiningDate: new Date().toISOString().split("T")[0],
-      dialerLink: "",
-      password: "",
-      servers: 1,
-      charges: 0,
-      paidAmount: 0,
-      renewalDate: "",
-      status: "Active",
-      comment: "",
-      additionalComment: "",
-    });
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[100dvh] md:h-auto md:max-h-[90vh] overflow-y-auto bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-none sm:rounded-3xl shadow-2xl z-[60] scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-neutral-800 scrollbar-track-transparent"
-          >
-            <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold tracking-tight">
-                  Add New Company
-                </h2>
-                <p className="text-sm text-black/40 dark:text-white/40">
-                  Register a new client company into the system.
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)] sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Add company</DialogTitle>
+          <DialogDescription>
+            Register a new dialer account. It joins this month&apos;s billing as
+            soon as it is created.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+          <DialogBody className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="add-name">Company name</Label>
+              <Input
+                id="add-name"
+                required
+                autoFocus
+                placeholder="Company name"
+                value={formData.name}
+                onChange={(e) => setField("name", e.target.value)}
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Building2 className="w-3 h-3" /> Company Name
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. TechFlow Solutions"
-                    value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-dialerLink">Dialer link</Label>
+              <Input
+                id="add-dialerLink"
+                type="url"
+                required
+                placeholder="https://dialer.example.com"
+                value={formData.dialerLink}
+                onChange={(e) => setField("dialerLink", e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <LinkIcon className="w-3 h-3" /> Dialer Link
-                  </label>
-                  <input
-                    required
-                    type="url"
-                    placeholder="https://dialer.example.com"
-                    value={formData.dialerLink}
-                    onChange={(e) => handleChange("dialerLink", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Lock className="w-3 h-3" /> Password
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="123456789"
-                    value={formData.password}
-                    onChange={(e) => handleChange("password", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-password">Portal password</Label>
+              <Input
+                id="add-password"
+                required
+                placeholder="Account password"
+                value={formData.password}
+                onChange={(e) => setField("password", e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Server className="w-3 h-3" /> Total Servers
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    value={formData.servers}
-                    onChange={(e) =>
-                      handleChange("servers", Number.parseInt(e.target.value))
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-servers">Servers</Label>
+              <Input
+                id="add-servers"
+                type="number"
+                min="1"
+                required
+                className="tnum"
+                value={formData.servers}
+                onChange={(e) => setField("servers", Number(e.target.value) || 0)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <DollarSign className="w-3 h-3" /> Monthly Charges
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    placeholder="e.g. $1,200"
-                    value={formData.charges}
-                    onChange={(e) =>
-                      handleChange("charges", Number.parseInt(e.target.value))
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-charges">Monthly charges</Label>
+              <Input
+                id="add-charges"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                className="tnum"
+                value={formData.charges}
+                onChange={(e) => setField("charges", Number(e.target.value) || 0)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <DollarSign className="w-3 h-3" /> Paid Amount
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="e.g. $500"
-                    value={formData.paidAmount}
-                    onChange={(e) =>
-                      handleChange("paidAmount", Number.parseFloat(e.target.value))
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-paidAmount">Paid amount</Label>
+              <Input
+                id="add-paidAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                className="tnum"
+                value={formData.paidAmount}
+                onChange={(e) =>
+                  setField("paidAmount", Number(e.target.value) || 0)
+                }
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Calendar className="w-3 h-3" /> Renewal Date
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    value={formData.renewalDate}
-                    onChange={(e) =>
-                      handleChange("renewalDate", e.target.value)
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-joiningDate">Joining date</Label>
+              <Input
+                id="add-joiningDate"
+                type="date"
+                required
+                className="tnum"
+                value={formData.joiningDate}
+                onChange={(e) => setField("joiningDate", e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Calendar className="w-3 h-3" /> Joining Date
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    value={formData.joiningDate}
-                    onChange={(e) =>
-                      handleChange("joiningDate", e.target.value)
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-renewalDate">Renewal date</Label>
+              <Input
+                id="add-renewalDate"
+                type="date"
+                required
+                className="tnum"
+                value={formData.renewalDate}
+                onChange={(e) => setField("renewalDate", e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Activity className="w-3 h-3" /> Initial Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => handleChange("status", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-status">Initial status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setField("status", value)}
+              >
+                <SelectTrigger id="add-status" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                  <File className="w-3 h-3" /> Renewal Details
-                </label>
-                <input
-                  type="text"
-                  value={formData.comment}
-                  onChange={(e) => handleChange("comment", e.target.value)}
-                  className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                />
-              </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="add-comment">Renewal details</Label>
+              <Input
+                id="add-comment"
+                placeholder="Anything to note about this renewal"
+                value={formData.comment}
+                onChange={(e) => setField("comment", e.target.value)}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                  <File className="w-3 h-3" /> Additional Comment
-                </label>
-                <input
-                  type="text"
-                  value={formData.additionalComment}
-                  onChange={(e) =>
-                    handleChange("additionalComment", e.target.value)
-                  }
-                  className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                />
-              </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="add-additionalComment">Additional comment</Label>
+              <Input
+                id="add-additionalComment"
+                value={formData.additionalComment}
+                onChange={(e) => setField("additionalComment", e.target.value)}
+              />
+            </div>
+          </DialogBody>
 
-              <div className="pt-4 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-8 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-bold flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <Plus className="w-4 h-4" /> Add Company
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit">
+              <Plus className="size-4" />
+              Add company
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -30,8 +30,19 @@ function getSnapshot() {
   return state;
 }
 
+/**
+ * React requires `getServerSnapshot` to return a cached value: handing back a
+ * fresh object literal on every call makes `useSyncExternalStore` re-render
+ * forever ("The result of getServerSnapshot should be cached"). One frozen
+ * constant satisfies that contract.
+ */
+const serverSnapshot: SidebarState = Object.freeze({
+  mobileOpen: false,
+  collapsed: false,
+});
+
 function getServerSnapshot(): SidebarState {
-  return { mobileOpen: false, collapsed: false };
+  return serverSnapshot;
 }
 
 export function openMobileSidebar() {

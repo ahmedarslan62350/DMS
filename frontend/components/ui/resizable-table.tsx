@@ -14,108 +14,123 @@ const DEFAULT_MIN = 72;
 const DEFAULT_MAX = 640;
 const KEYBOARD_STEP = 16;
 
+interface DragState {
+  id: string;
+  startX: number;
+  startWidth: number;
+}
+
 /**
- * Manages per-column pixel widths for a table, driven by pointer-drag
- * resize handles. Widths live in component state only (not persisted),
- * so a page refresh restores the defaults defined in `columns`.
+ * Manages per-column pixel widths for a table, driven by pointer-drag resize
+ * handles. Widths live in component state only (not persisted), so a page
+ * refresh restores the defaults defined in `columns`.
+ *
+ * The drag is modelled as state plus one effect that owns the window
+ * listeners, so the listeners are always torn down by React itself. The
+ * previous version registered handlers imperatively and declared its cleanup
+ * in terms of itself, which could strand a `pointermove` listener and left the
+ * document cursor stuck on `col-resize`.
  */
 export function useResizableColumns(columns: ResizableColumnDef[]) {
   const [widths, setWidths] = React.useState<Record<string, number>>(() =>
     Object.fromEntries(columns.map((c) => [c.id, c.width])),
   );
+  const [drag, setDrag] = React.useState<DragState | null>(null);
 
-  const boundsRef = React.useRef<Record<string, { min: number; max: number; initial: number }>>(
-    Object.fromEntries(
-      columns.map((c) => [
-        c.id,
-        {
-          min: c.minWidth ?? DEFAULT_MIN,
-          max: c.maxWidth ?? DEFAULT_MAX,
-          initial: c.width,
-        },
-      ]),
-    ),
+  const bounds = React.useMemo(
+    () =>
+      Object.fromEntries(
+        columns.map((c) => [
+          c.id,
+          {
+            min: c.minWidth ?? DEFAULT_MIN,
+            max: c.maxWidth ?? DEFAULT_MAX,
+            initial: c.width,
+          },
+        ]),
+      ) as Record<string, { min: number; max: number; initial: number }>,
+    [columns],
   );
 
-  const dragState = React.useRef<{
-    id: string;
-    startX: number;
-    startWidth: number;
-  } | null>(null);
+  const clamp = React.useCallback(
+    (id: string, value: number) => {
+      const limit = bounds[id] ?? { min: DEFAULT_MIN, max: DEFAULT_MAX };
+      return Math.min(limit.max, Math.max(limit.min, value));
+    },
+    [bounds],
+  );
 
-  const clamp = React.useCallback((id: string, value: number) => {
-    const bounds = boundsRef.current[id] ?? { min: DEFAULT_MIN, max: DEFAULT_MAX };
-    return Math.min(bounds.max, Math.max(bounds.min, value));
-  }, []);
+  /* ---- The single owner of the drag listeners ---- */
+  React.useEffect(() => {
+    if (!drag) return;
 
-  const onPointerMove = React.useCallback(
-    (e: PointerEvent) => {
-      const drag = dragState.current;
-      if (!drag) return;
-      const delta = e.clientX - drag.startX;
+    const onPointerMove = (event: PointerEvent) => {
+      const delta = event.clientX - drag.startX;
       setWidths((prev) => ({
         ...prev,
         [drag.id]: clamp(drag.id, drag.startWidth + delta),
       }));
-    },
-    [clamp],
-  );
+    };
 
-  const stopResize = React.useCallback(() => {
-    dragState.current = null;
-    document.body.style.removeProperty("cursor");
-    document.body.style.removeProperty("user-select");
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", stopResize);
-  }, [onPointerMove]);
+    const endDrag = () => setDrag(null);
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+
+    return () => {
+      document.body.style.removeProperty("cursor");
+      document.body.style.removeProperty("user-select");
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+    };
+  }, [drag, clamp]);
 
   const startResize = React.useCallback(
-    (id: string) => (e: React.PointerEvent) => {
-      e.preventDefault();
-      dragState.current = {
+    (id: string) => (event: React.PointerEvent) => {
+      event.preventDefault();
+      setDrag({
         id,
-        startX: e.clientX,
-        startWidth: widths[id] ?? boundsRef.current[id]?.initial ?? 150,
-      };
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      window.addEventListener("pointermove", onPointerMove);
-      window.addEventListener("pointerup", stopResize);
+        startX: event.clientX,
+        startWidth: widths[id] ?? bounds[id]?.initial ?? 150,
+      });
     },
-    [widths, onPointerMove, stopResize],
+    [widths, bounds],
   );
 
   const nudgeColumn = React.useCallback(
     (id: string, direction: 1 | -1) => {
       setWidths((prev) => ({
         ...prev,
-        [id]: clamp(id, (prev[id] ?? boundsRef.current[id]?.initial ?? 150) + direction * KEYBOARD_STEP),
+        [id]: clamp(
+          id,
+          (prev[id] ?? bounds[id]?.initial ?? 150) + direction * KEYBOARD_STEP,
+        ),
       }));
     },
-    [clamp],
+    [clamp, bounds],
   );
 
-  const resetColumn = React.useCallback((id: string) => {
-    setWidths((prev) => ({
-      ...prev,
-      [id]: boundsRef.current[id]?.initial ?? prev[id],
-    }));
-  }, []);
+  const resetColumn = React.useCallback(
+    (id: string) => {
+      setWidths((prev) => ({
+        ...prev,
+        [id]: bounds[id]?.initial ?? prev[id],
+      }));
+    },
+    [bounds],
+  );
 
   const resetAll = React.useCallback(() => {
     setWidths(
       Object.fromEntries(
-        Object.entries(boundsRef.current).map(([id, b]) => [id, b.initial]),
+        Object.entries(bounds).map(([id, limit]) => [id, limit.initial]),
       ),
     );
-  }, []);
-
-  React.useEffect(() => {
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      window.removeEventListener("pointerup", stopResize);
-    };
-  }, [onPointerMove, stopResize]);
+  }, [bounds]);
 
   return { widths, startResize, nudgeColumn, resetColumn, resetAll };
 }
@@ -165,7 +180,7 @@ export function ColumnResizeHandle({
         }
       }}
       className={cn(
-        "group/handle absolute top-0 right-0 z-10 h-full w-2.5 -mr-1.5 cursor-col-resize touch-none rounded-sm outline-none select-none",
+        "group/handle absolute top-0 right-0 z-10 -mr-1.5 h-full w-2.5 cursor-col-resize touch-none rounded-sm outline-none select-none",
         "focus-visible:ring-2 focus-visible:ring-ring/60",
         className,
       )}

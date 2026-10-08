@@ -1,239 +1,270 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "motion/react";
 import {
   Mail,
   Lock,
   Eye,
   EyeOff,
-  Zap,
   ArrowRight,
   Sun,
   Moon,
+  AlertCircle,
 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
-import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AuthMutations } from "@/tanstack/Mutations/authMutations";
 import { useRouter } from "next/navigation";
+import { getApiErrorMessage } from "@/lib/axios";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { TokenStorage } from "@/lib/helpers";
+
+/** Real, shipped capabilities — not invented marketing copy. */
+const capabilities = [
+  { index: "01", label: "Company registry", detail: "Servers, links and credentials" },
+  { index: "02", label: "Renewal alerts", detail: "Deadlines before they lapse" },
+  { index: "03", label: "Monthly charges", detail: "Billed, collected and pending" },
+  { index: "04", label: "Audit history", detail: "Every field change, attributed" },
+];
 
 export default function LoginPage() {
   const { theme, toggleTheme } = useTheme();
   const [showPassword, setShowPassword] = React.useState(false);
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [fieldError, setFieldError] = React.useState<string | null>(null);
   const router = useRouter();
-
   const queryClient = useQueryClient();
-  const loginMutation = useMutation(AuthMutations.login(queryClient));
 
-  const onSubmit = () => {
-    loginMutation.mutate({
-      email,
-      password,
-    });
+  const loginMutation = useMemoisedLogin(queryClient);
 
-    if (loginMutation?.data?.user) {
-      router.push("/dashboard");
+  /*
+   * Redirect on success — driven by the mutation result, not by a synchronous
+   * read of `loginMutation.data` immediately after `mutate()`. That read was
+   * always `undefined`, which is why signing in previously did nothing.
+   */
+  React.useEffect(() => {
+    if (loginMutation.isSuccess && TokenStorage.get()) {
+      router.replace("/dashboard");
     }
+  }, [loginMutation.isSuccess, router]);
+
+  const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      setFieldError("Enter both your email address and password.");
+      return;
+    }
+
+    setFieldError(null);
+    loginMutation.mutate({ email: trimmedEmail, password });
   };
 
+  const errorMessage = fieldError
+    ? fieldError
+    : loginMutation.isError
+      ? getApiErrorMessage(loginMutation.error)
+      : null;
+
+  const isPending = loginMutation.isPending;
+
   return (
-    <div className="min-h-screen flex bg-white dark:bg-black transition-colors duration-500 overflow-hidden">
-      {/* Top Right Controls */}
-      <div className="absolute top-4 right-4 z-50 sm:top-8 sm:right-8">
-        <button
-          onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-          className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/10"
-        >
-          {theme === "dark" ? (
-            <Sun className="w-5 h-5" />
-          ) : (
-            <Moon className="w-5 h-5" />
-          )}
-        </button>
-      </div>
-
-      {/* Left Branding Panel (Desktop Only) */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-black items-center justify-center overflow-hidden">
-        {/* Subtle Gradient Texture & Glow */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.05),transparent_70%)]" />
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-white/5 rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-white/5 rounded-full blur-[120px] animate-pulse delay-700" />
-
-        <div className="relative z-10 p-12 max-w-xl text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mb-8 flex justify-center"
-          >
-            <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-[0_0_40px_rgba(255,255,255,0.2)]">
-              <Zap className="w-12 h-12 text-black" />
-            </div>
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl font-bold text-white tracking-tight mb-6"
-          >
-            Manage Dialer Companies Efficiently
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-white/40 text-lg leading-relaxed font-medium"
-          >
-            The all-in-one enterprise platform for dialer management, real-time
-            monitoring, and automated renewal workflows.
-          </motion.p>
-
-          {/* Abstract Animated Shape */}
-          <motion.div
-            animate={{
-              y: [0, -20, 0],
-              rotate: [0, 5, 0],
-            }}
-            transition={{
-              duration: 6,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            className="mt-16 flex justify-center"
-          >
-            <div className="w-32 h-32 border border-white/10 rounded-full flex items-center justify-center">
-              <div className="w-24 h-24 border border-white/20 rounded-full flex items-center justify-center">
-                <div className="w-16 h-16 bg-white/5 rounded-full backdrop-blur-sm" />
-              </div>
-            </div>
-          </motion.div>
+    <div className="grid min-h-screen bg-background lg:grid-cols-[1.05fr_1fr]">
+      {/* ---------------- Ink panel: identity + orientation ---------------- */}
+      <aside className="hidden flex-col justify-between bg-rail p-12 lg:flex xl:p-16">
+        <div className="flex items-center gap-3">
+          <span className="flex size-7 items-center justify-center rounded-[3px] bg-white font-mono text-[11px] leading-none font-bold text-[#0b0b0d]">
+            DF
+          </span>
+          <span className="flex flex-col">
+            <span className="text-[15px] leading-tight font-semibold tracking-[-0.02em] text-white">
+              DialerFlow
+            </span>
+            <span className="rail-label">Management Portal</span>
+          </span>
         </div>
-      </div>
 
-      {/* Right Login Form Section */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8 relative">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
-        >
-          <div className="bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-3xl sm:rounded-[40px] p-6 sm:p-10 shadow-2xl shadow-black/5 dark:shadow-white/5">
-            <div className="mb-8 sm:mb-10">
-              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
-                Welcome back
-              </h2>
-              <p className="text-black/40 dark:text-white/40 font-medium">
-                Please enter your details to sign in.
-              </p>
-            </div>
+        <div className="max-w-xl">
+          <h2 className="display-2 text-white">
+            Everything your dialer
+            <br />
+            accounts depend on,
+            <br />
+            in one register.
+          </h2>
 
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
-              {/* Email Input */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="email"
-                  className="text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40 ml-1"
+          <p className="body-lg mt-6 max-w-md text-rail-muted">
+            Track each company&apos;s servers, charges and renewal dates.
+            Every change is written to an attributed audit trail.
+          </p>
+
+          <ul className="mt-12 border-t border-rail-border">
+            {capabilities.map((item) => (
+              <li
+                key={item.index}
+                className="flex items-baseline gap-5 border-b border-rail-border py-4"
+              >
+                <span className="mono-id text-rail-muted">{item.index}</span>
+                <span className="flex flex-col">
+                  <span className="text-[13px] font-medium text-white">
+                    {item.label}
+                  </span>
+                  <span className="text-[12px] text-rail-muted">
+                    {item.detail}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="rail-label">
+          Authorised personnel only · Access is provisioned by an administrator
+        </p>
+      </aside>
+
+      {/* ---------------- Form panel ---------------- */}
+      <main className="relative flex flex-col">
+        <div className="flex items-center justify-between px-6 py-5 sm:px-10">
+          {/* Compact wordmark, mobile only — the ink panel is hidden here */}
+          <span className="flex items-center gap-2.5 lg:invisible">
+            <span className="flex size-6 items-center justify-center rounded-[3px] bg-foreground font-mono text-[10px] leading-none font-bold text-background">
+              DF
+            </span>
+            <span className="text-[13px] font-semibold tracking-[-0.02em] text-foreground">
+              DialerFlow
+            </span>
+          </span>
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={
+              theme === "dark" ? "Switch to light theme" : "Switch to dark theme"
+            }
+            className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          >
+            {theme === "dark" ? (
+              <Sun className="size-[18px]" />
+            ) : (
+              <Moon className="size-[18px]" />
+            )}
+          </button>
+        </div>
+
+        <div className="flex flex-1 items-center px-6 pb-16 sm:px-10">
+          <div className="w-full max-w-[26rem]">
+            <p className="micro-label">Secure sign in</p>
+            <h1 className="heading-1 mt-3 text-foreground">
+              Sign in to the portal
+            </h1>
+            <p className="body mt-2 text-muted-foreground">
+              Use the credentials issued by your administrator.
+            </p>
+
+            <form onSubmit={onSubmit} noValidate className="mt-9 space-y-5">
+              {errorMessage && (
+                <div
+                  role="alert"
+                  aria-live="polite"
+                  className="flex items-start gap-2.5 rounded-md border border-destructive/30 bg-destructive/8 px-3.5 py-3"
                 >
-                  Email Address
-                </label>
-                <div className="relative group">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/20 dark:text-white/20 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" />
-                  <input
+                  <AlertCircle className="mt-px size-4 shrink-0 text-destructive" />
+                  <p className="body-sm text-destructive">{errorMessage}</p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    name="email"
                     type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    placeholder="name@company.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                    disabled={isPending}
+                    aria-invalid={!!errorMessage}
+                    className="pl-9"
                   />
                 </div>
               </div>
 
-              {/* Password Input */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between ml-1">
-                  <label
-                    htmlFor="password"
-                    className="text-xs font-bold uppercase tracking-widest text-black/40 dark:text-white/40"
-                  >
-                    Password
-                  </label>
-                  <Link
-                    href="#"
-                    className="text-xs font-bold text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <div className="relative group">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/20 dark:text-white/20 group-focus-within:text-black dark:group-focus-within:text-white transition-colors" />
-                  <input
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 rounded-2xl py-4 pl-12 pr-12 text-sm outline-none focus:ring-2 focus:ring-black dark:focus:ring-white transition-all"
+                    disabled={isPending}
+                    aria-invalid={!!errorMessage}
+                    className="pr-10 pl-9"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-black/20 dark:text-white/20 hover:text-black dark:hover:text-white transition-colors"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                    aria-pressed={showPassword}
+                    className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded-[4px] p-1.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   >
                     {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
+                      <EyeOff className="size-4" />
                     ) : (
-                      <Eye className="w-4 h-4" />
+                      <Eye className="size-4" />
                     )}
                   </button>
                 </div>
               </div>
 
-              {/* Remember Me */}
-              <label className="flex items-center gap-3 cursor-pointer group w-fit">
-                <div className="relative flex items-center justify-center">
-                  <input
-                    type="checkbox"
-                    className="peer appearance-none w-5 h-5 border-2 border-black/10 dark:border-white/10 rounded-lg checked:bg-black dark:checked:bg-white transition-all cursor-pointer"
-                  />
-                  <Zap className="absolute w-3 h-3 text-white dark:text-black opacity-0 peer-checked:opacity-100 transition-opacity pointer-events-none" />
-                </div>
-                <span className="text-sm font-medium text-black/60 dark:text-white/60 group-hover:text-black dark:group-hover:text-white transition-colors">
-                  Remember me for 30 days
-                </span>
-              </label>
-
-              {/* Login Button */}
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onSubmit}
-                className="w-full bg-black dark:bg-white text-white dark:text-black font-bold py-4 rounded-2xl flex items-center justify-center gap-2 group transition-all shadow-xl shadow-black/10 dark:shadow-white/10 mt-4"
+              <Button
+                type="submit"
+                size="lg"
+                disabled={isPending}
+                className="w-full"
               >
-                Sign in to Portal
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </motion.button>
+                {isPending ? "Signing in…" : "Sign in"}
+                {!isPending && <ArrowRight className="size-4" />}
+              </Button>
             </form>
 
-            <div className="mt-10 text-center">
-              <p className="text-sm text-black/40 dark:text-white/40 font-medium">
-                Don&apos;t have an account?{" "}
-                <Link
-                  href="#"
-                  className="text-black dark:text-white font-bold hover:underline underline-offset-4"
-                >
-                  Contact Admin
-                </Link>
-              </p>
-            </div>
+            <div className="rule mt-9" />
+            <p className="body-sm mt-5 text-muted-foreground">
+              Don&apos;t have an account? Access is granted by an administrator —
+              contact yours to be provisioned.
+            </p>
           </div>
-        </motion.div>
-      </div>
+        </div>
+      </main>
     </div>
   );
+}
+
+/**
+ * `AuthMutations.login(queryClient)` builds a fresh options object on every
+ * render, which makes `useMutation` re-register needlessly. Memoising keeps
+ * the mutation identity stable for the life of the page.
+ */
+function useMemoisedLogin(queryClient: ReturnType<typeof useQueryClient>) {
+  const options = React.useMemo(
+    () => AuthMutations.login(queryClient),
+    [queryClient],
+  );
+
+  return useMutation(options);
 }

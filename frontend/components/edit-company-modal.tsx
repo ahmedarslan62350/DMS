@@ -1,22 +1,31 @@
 "use client";
 
 import * as React from "react";
-import { motion, AnimatePresence } from "motion/react";
-import {
-  X,
-  Save,
-  Building2,
-  Link as LinkIcon,
-  Server,
-  DollarSign,
-  Calendar,
-  Activity,
-  File,
-  Lock,
-} from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 
-interface Company {
-  id: number;
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { useMe } from "@/hooks/useMe";
+
+export interface CompanyFormValues {
+  id: number | string;
   name: string;
   joiningDate: string;
   dialerLink: string;
@@ -34,255 +43,275 @@ interface Company {
 interface EditCompanyModalProps {
   isOpen: boolean;
   onClose: () => void;
-  company: Company | null;
-  onSave: (updatedCompany: Company) => void;
+  company: CompanyFormValues | null;
+  onSave: (updatedCompany: CompanyFormValues) => void;
+  onDelete?: (company: CompanyFormValues) => void;
 }
-
-type status = "active" | "inactive";
 
 export function EditCompanyModal({
   isOpen,
   onClose,
   company,
   onSave,
+  onDelete,
 }: Readonly<EditCompanyModalProps>) {
-  const [formData, setFormData] = React.useState<Company | null>(null);
-  const [status, setStatus] = React.useState<status>(
-    (formData?.status as status) || "active",
-  );
+  const [formData, setFormData] = React.useState<CompanyFormValues | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = React.useState(false);
+  const { user } = useMe();
+
+  /*
+   * Only an admin may change the joining date — the API enforces this with a
+   * 403. Reflecting that here stops non-admins from triggering a failed save.
+   */
+  const canEditJoiningDate = user?.role?.name === "admin";
 
   React.useEffect(() => {
     if (company) {
       setFormData({ ...company });
+      setConfirmingDelete(false);
     }
   }, [company]);
 
+  /*
+   * Status used to live in its own state initialised from a null `formData`,
+   * so an inactive company always rendered as active and the inactive-date
+   * field never appeared. Deriving it from the form fixes that.
+   */
+  const status = (formData?.status ?? "Active").toLowerCase();
+  const isInactive = status === "inactive";
+
   if (!formData) return null;
 
-  const handleChange = (field: keyof Company, value: any) => {
-    if (field === "status") {
-      setStatus(value.toLowerCase());
-    }
-
-    setFormData((prev) => (prev ? { ...prev, [field]: value } : null));
+  const setField = <K extends keyof CompanyFormValues>(
+    field: K,
+    value: CompanyFormValues[K],
+  ) => {
+    setFormData((prev) => (prev ? { ...prev, [field]: value } : prev));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (formData) {
-      onSave(formData);
-      onClose();
-    }
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!formData) return;
+    onSave(formData);
+    onClose();
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl h-[100dvh] md:h-auto md:max-h-[90vh] overflow-y-auto bg-white dark:bg-black border border-black/10 dark:border-white/10 rounded-none sm:rounded-3xl shadow-2xl z-[60] scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-neutral-800 scrollbar-track-transparent"
-          >
-            <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold tracking-tight">
-                  Edit Company Details
-                </h2>
-                <p className="text-sm text-black/40 dark:text-white/40">
-                  Update information for {company?.name}
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="grid-rows-[auto_minmax(0,1fr)] sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit company</DialogTitle>
+          <DialogDescription>
+            {company?.name}
+            {company?.id !== undefined && (
+              <span className="mono-id"> · ID {String(company.id)}</span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-col">
+          <DialogBody className="grid gap-5 sm:grid-cols-2">
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="edit-name">Company name</Label>
+              <Input
+                id="edit-name"
+                required
+                value={formData.name}
+                onChange={(e) => setField("name", e.target.value)}
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 sm:p-8 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Building2 className="w-3 h-3" /> Company Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-dialerLink">Dialer link</Label>
+              <Input
+                id="edit-dialerLink"
+                type="url"
+                placeholder="https://dialer.example.com"
+                value={formData.dialerLink ?? ""}
+                onChange={(e) => setField("dialerLink", e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <LinkIcon className="w-3 h-3" /> Dialer Link
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.dialerLink}
-                    onChange={(e) => handleChange("dialerLink", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-password">Password</Label>
+              <Input
+                id="edit-password"
+                required
+                value={formData.password ?? ""}
+                onChange={(e) => setField("password", e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Lock className="w-3 h-3" /> Password
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="123456789"
-                    value={formData.password}
-                    onChange={(e) => handleChange("password", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-servers">Servers</Label>
+              <Input
+                id="edit-servers"
+                type="number"
+                min="0"
+                className="tnum"
+                value={formData.servers}
+                onChange={(e) => setField("servers", Number(e.target.value) || 0)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Server className="w-3 h-3" /> Total Servers
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.servers}
-                    onChange={(e) =>
-                      handleChange("servers", Number.parseInt(e.target.value))
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-charges">Monthly charges</Label>
+              <Input
+                id="edit-charges"
+                type="number"
+                min="0"
+                step="0.01"
+                className="tnum"
+                value={formData.charges}
+                onChange={(e) => setField("charges", Number(e.target.value) || 0)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <DollarSign className="w-3 h-3" /> Monthly Charges
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.charges}
-                    onChange={(e) =>
-                      handleChange("charges", Number.parseInt(e.target.value))
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-paidAmount">Paid amount</Label>
+              <Input
+                id="edit-paidAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                className="tnum"
+                value={formData.paidAmount}
+                onChange={(e) =>
+                  setField("paidAmount", Number(e.target.value) || 0)
+                }
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <DollarSign className="w-3 h-3" /> Paid Amount
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.paidAmount}
-                    onChange={(e) =>
-                      handleChange("paidAmount", Number.parseFloat(e.target.value))
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-renewalDate">Renewal date</Label>
+              <Input
+                id="edit-renewalDate"
+                type="date"
+                required
+                className="tnum"
+                value={formData.renewalDate ?? ""}
+                onChange={(e) => setField("renewalDate", e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Calendar className="w-3 h-3" /> Renewal Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.renewalDate}
-                    onChange={(e) =>
-                      handleChange("renewalDate", e.target.value)
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <Activity className="w-3 h-3" /> Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => handleChange("status", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  >
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                  </select>
-                </div>
-
-                {status === "inactive" && (
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                      <Calendar className="w-3 h-3" /> Inactive Date
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.inactiveDate}
-                      onChange={(e) =>
-                        handleChange("inactiveDate", e.target.value)
-                      }
-                      className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                    />
-                  </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-joiningDate">
+                Joining date
+                {!canEditJoiningDate && (
+                  <span className="ml-1 normal-case opacity-70">
+                    (admin only)
+                  </span>
                 )}
+              </Label>
+              <Input
+                id="edit-joiningDate"
+                type="date"
+                className="tnum"
+                disabled={!canEditJoiningDate}
+                value={formData.joiningDate ?? ""}
+                onChange={(e) => setField("joiningDate", e.target.value)}
+              />
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <File className="w-3 h-3" /> Comment
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.comment}
-                    onChange={(e) => handleChange("comment", e.target.value)}
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setField("status", value)}
+              >
+                <SelectTrigger id="edit-status" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-black/40 dark:text-white/40 flex items-center gap-2">
-                    <File className="w-3 h-3" /> Additional Comment
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.additionalComment}
-                    onChange={(e) =>
-                      handleChange("additionalComment", e.target.value)
-                    }
-                    className="w-full bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-black dark:focus:ring-white outline-none transition-all"
-                  />
-                </div>
+            {isInactive && (
+              <div className="space-y-2">
+                <Label htmlFor="edit-inactiveDate">Inactive date</Label>
+                <Input
+                  id="edit-inactiveDate"
+                  type="date"
+                  className="tnum"
+                  value={formData.inactiveDate ?? ""}
+                  onChange={(e) => setField("inactiveDate", e.target.value)}
+                />
               </div>
+            )}
 
-              <div className="pt-4 flex items-center justify-end gap-3">
-                <button
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="edit-comment">Renewal details</Label>
+              <Input
+                id="edit-comment"
+                value={formData.comment ?? ""}
+                onChange={(e) => setField("comment", e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor="edit-additionalComment">Additional comment</Label>
+              <Input
+                id="edit-additionalComment"
+                value={formData.additionalComment ?? ""}
+                onChange={(e) => setField("additionalComment", e.target.value)}
+              />
+            </div>
+          </DialogBody>
+
+          <DialogFooter className="sm:justify-between">
+            {onDelete ? (
+              confirmingDelete ? (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="solidDestructive"
+                    size="sm"
+                    onClick={() => {
+                      onDelete(formData);
+                      onClose();
+                    }}
+                  >
+                    Confirm delete
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    Keep
+                  </Button>
+                </div>
+              ) : (
+                <Button
                   type="button"
-                  onClick={onClose}
-                  className="px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setConfirmingDelete(true)}
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-8 py-2.5 rounded-xl bg-black dark:bg-white text-white dark:text-black text-sm font-bold flex items-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  <Save className="w-4 h-4" /> Save Changes
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+                  <Trash2 className="size-3.5" />
+                  Delete company
+                </Button>
+              )
+            ) : (
+              <span />
+            )}
+
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                <Save className="size-4" />
+                Save changes
+              </Button>
+            </div>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

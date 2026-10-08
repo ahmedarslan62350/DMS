@@ -1,116 +1,167 @@
 "use client";
 
 import * as React from "react";
-import {
-  Search,
-  Moon,
-  Sun,
-  User,
-  LogOut,
-  Settings,
-  UserCircle,
-  Bell,
-  Menu,
-} from "lucide-react";
+import { Moon, Sun, LogOut, Menu, ChevronDown } from "lucide-react";
 import { useTheme } from "./theme-provider";
-import { motion, AnimatePresence } from "motion/react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/hooks/useMe";
-import { Button } from "./ui/button";
 import { toggleMobileSidebar } from "@/hooks/useSidebar";
+import { TokenStorage } from "@/lib/helpers";
+import { SECTION_LABELS } from "./sidebar";
+import { cn } from "@/lib/utils";
 
+/**
+ * Top bar. Deliberately sparse: current location on the left, session
+ * controls on the right. No fake search box and no bell with a hardcoded
+ * unread dot — decoration that lies about state is worse than an empty bar.
+ */
 export function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
   const router = useRouter();
-  const me = useMe();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const { user } = useMe();
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  const sectionLabel = React.useMemo(() => {
+    if (SECTION_LABELS[pathname]) return SECTION_LABELS[pathname];
+    const match = Object.keys(SECTION_LABELS)
+      .filter((key) => pathname.startsWith(key))
+      .sort((a, b) => b.length - a.length)[0];
+    return match ? SECTION_LABELS[match] : "Portal";
+  }, [pathname]);
+
+  // Dismiss the menu on outside click / Escape.
+  React.useEffect(() => {
+    if (!isProfileOpen) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsProfileOpen(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isProfileOpen]);
 
   const handleLogout = () => {
-    router.push("/login");
+    // Clear the session for real: token first, then the cached identity.
+    TokenStorage.remove();
+    queryClient.clear();
+    setIsProfileOpen(false);
+    router.replace("/login");
   };
 
-  return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-black/5 bg-white/80 px-4 backdrop-blur-md sm:h-20 sm:px-6 lg:px-8 dark:border-white/10 dark:bg-black/80">
-      <button
-        onClick={toggleMobileSidebar}
-        aria-label="Toggle navigation menu"
-        aria-controls="app-sidebar"
-        className="rounded-xl p-2 text-black/60 transition-colors hover:bg-black/5 hover:text-black lg:hidden dark:text-white/60 dark:hover:bg-white/5 dark:hover:text-white"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+  const initials = (user?.name ?? "")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part: string) => part[0]?.toUpperCase())
+    .join("");
 
-      <div className="hidden max-w-xl flex-1 md:block">
-        <div className="group relative">
-          <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-black/40 transition-colors group-focus-within:text-black dark:text-white/40 dark:group-focus-within:text-white" />
-          <input
-            type="text"
-            placeholder="Search companies, logs, or alerts..."
-            className="w-full rounded-2xl border-none bg-black/5 py-2.5 pr-4 pl-11 text-sm transition-all outline-none focus:ring-2 focus:ring-black dark:bg-white/5 dark:focus:ring-white"
-          />
-        </div>
+  return (
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/85 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={toggleMobileSidebar}
+          aria-label="Open navigation menu"
+          aria-controls="app-sidebar"
+          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring lg:hidden"
+        >
+          <Menu className="size-[18px]" />
+        </button>
+
+        <span className="micro-label truncate">{sectionLabel}</span>
       </div>
 
-      <div className="ml-auto flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-1.5">
         <button
+          type="button"
           onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-          className="rounded-2xl border border-black/5 p-2.5 transition-colors hover:bg-black/5 dark:border-white/10 dark:hover:bg-white/5"
+          aria-label={
+            theme === "dark" ? "Switch to light theme" : "Switch to dark theme"
+          }
+          className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {theme === "dark" ? (
-            <Sun className="w-5 h-5" />
+            <Sun className="size-[18px]" />
           ) : (
-            <Moon className="w-5 h-5" />
+            <Moon className="size-[18px]" />
           )}
         </button>
 
-        <button
-          aria-label="Notifications"
-          className="relative hidden rounded-2xl border border-black/5 p-2.5 transition-colors hover:bg-black/5 sm:block dark:border-white/10 dark:hover:bg-white/5"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-black" />
-        </button>
+        <div className="mx-1.5 hidden h-5 w-px bg-border sm:block" />
 
-        <div className="relative">
+        <div className="relative" ref={menuRef}>
           <button
-            onClick={() => setIsProfileOpen(!isProfileOpen)}
+            type="button"
+            onClick={() => setIsProfileOpen((open) => !open)}
             aria-haspopup="menu"
             aria-expanded={isProfileOpen}
-            className="flex items-center gap-2 rounded-full border border-black/5 p-1 pr-1 transition-colors hover:bg-black/5 sm:pr-3 dark:border-white/10 dark:hover:bg-white/5"
+            className={cn(
+              "flex items-center gap-2.5 rounded-md py-1.5 pr-2 pl-1.5 transition-colors hover:bg-muted",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+              isProfileOpen && "bg-muted",
+            )}
           >
-            <div className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center">
-              <User className="w-4 h-4 text-white dark:text-black" />
-            </div>
-            <span className="hidden text-sm font-medium sm:inline">{me.user?.name}</span>
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-[3px] bg-foreground font-mono text-[10px] leading-none font-bold text-background">
+              {initials || "—"}
+            </span>
+            <span className="hidden max-w-[9rem] flex-col items-start leading-tight sm:flex">
+              <span className="w-full truncate text-[13px] font-medium text-foreground">
+                {user?.name ?? "Loading…"}
+              </span>
+              {user?.role?.name && (
+                <span className="text-[9px] font-semibold tracking-[0.14em] text-muted-foreground uppercase">
+                  {user.role.name}
+                </span>
+              )}
+            </span>
+            <ChevronDown
+              className={cn(
+                "size-3.5 text-muted-foreground transition-transform duration-150",
+                isProfileOpen && "rotate-180",
+              )}
+            />
           </button>
 
-          <AnimatePresence>
-            {isProfileOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-2 w-56 bg-white dark:bg-black border border-black/5 dark:border-white/10 rounded-2xl shadow-2xl z-20 overflow-hidden"
-              >
-                <div className="p-2 space-y-1">
-                  {/* <button className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                      <UserCircle className="w-4 h-4" /> Profile
-                    </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                      <Settings className="w-4 h-4" /> Settings
-                    </button> */}
-                  <div className="h-px bg-black/5 dark:bg-white/10 my-1" />
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" /> Logout
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {isProfileOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-lg border border-border bg-popover shadow-[0_16px_40px_-20px_rgba(9,9,11,0.3)]"
+            >
+              <div className="border-b border-border px-4 py-3">
+                <p className="truncate text-[13px] font-medium text-foreground">
+                  {user?.name ?? "—"}
+                </p>
+                <p className="truncate text-[12px] text-muted-foreground">
+                  {user?.email ?? "—"}
+                </p>
+              </div>
+              <div className="p-1">
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] font-medium text-destructive transition-colors hover:bg-destructive/8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <LogOut className="size-4" />
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

@@ -56,18 +56,14 @@ const rolesData = [
   {
     name: "manager",
     description: "This Users can manage",
-    permissions: [
-      "company.read",
-      "company.update",
-      "comment.create",
-      "comment.read",
-      "audit.read",
-    ],
+    // `comment.*` used to be listed here but no such permission exists in the
+    // catalogue above, which stored `undefined` entries in the role document.
+    permissions: ["company.read", "company.update", "audit.read"],
   },
   {
     name: "viewer",
     description: "This Users only have permission to read",
-    permissions: ["company.read", "comment.read", "audit.read"],
+    permissions: ["company.read", "audit.read"],
   },
 ];
 
@@ -96,7 +92,10 @@ const seed = async () => {
     for (const role of rolesData) {
       const exists = await Role.findOne({ name: role.name });
       if (!exists) {
-        const permIds = role.permissions.map((p) => permMap[p]);
+        // Drop any key with no matching permission rather than writing null.
+        const permIds = role.permissions
+          .map((p) => permMap[p])
+          .filter(Boolean);
         await Role.insertOne({ name: role.name, permissions: permIds });
         console.log(`Role created: ${role.name}`);
       }

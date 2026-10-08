@@ -13,7 +13,9 @@ export class MutationFactory {
       mutationFn,
       onSuccess: (data: any) => {
         if (options.onSuccess) {
-          options.onSuccess(data.token);
+          // Pass the whole payload. Previously this forwarded `data.token`,
+          // which broke every callback that expected the response body.
+          options.onSuccess(data);
         }
         invalidateKeys.forEach((key) => {
           queryClient.invalidateQueries({ queryKey: key });
